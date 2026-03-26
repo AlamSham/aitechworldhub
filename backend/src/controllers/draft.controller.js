@@ -1,4 +1,5 @@
 import { Draft } from '../models/draft.model.js';
+import { env } from '../config/env.js';
 
 function normalizeUrlList(values = []) {
   return (Array.isArray(values) ? values : [])
@@ -123,12 +124,14 @@ export async function updateDraft(req, res, next) {
         sourceCitations: updates.sourceCitations || current.sourceCitations || [],
         contentMarkdown: updates.contentMarkdown || current.contentMarkdown || ''
       };
-      const qaIssues = validatePublishReadiness(effectiveState);
-      if (qaIssues.length > 0) {
-        return res.status(400).json({
-          message: 'Publish blocked by QA gate. Complete checklist and citations first.',
-          issues: qaIssues
-        });
+      if (env.enablePublishQaGate) {
+        const qaIssues = validatePublishReadiness(effectiveState);
+        if (qaIssues.length > 0) {
+          return res.status(400).json({
+            message: 'Publish blocked by QA gate. Complete checklist and citations first.',
+            issues: qaIssues
+          });
+        }
       }
       updates.publishedAt = new Date();
     }
