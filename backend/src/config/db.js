@@ -5,3 +5,4 @@ export async function connectDatabase() {
   await mongoose.connect(env.mongoUri);
   console.log('[DB] MongoDB connected');
 }
+//hgguhgu
