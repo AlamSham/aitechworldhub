@@ -1,6 +1,8 @@
 import { MetadataRoute } from 'next';
 import { fetchPublishedPosts } from '../src/lib/api';
 
+export const dynamic = 'force-dynamic';
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://aitechworldhub.com';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
