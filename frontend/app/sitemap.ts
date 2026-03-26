@@ -54,9 +54,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Dynamically fetch all published posts to add to sitemap
   try {
-    const posts = await fetchPublishedPosts();
+    const allPosts = [];
+    let page = 1;
+    let hasNext = true;
+
+    while (hasNext) {
+      const { drafts, pagination } = await fetchPublishedPosts({
+        page,
+        limit: 50,
+        revalidateSeconds: 300
+      });
+      allPosts.push(...drafts);
+      hasNext = Boolean(pagination?.hasNext);
+      page += 1;
+      if (page > 100) break;
+    }
     
-    const postRoutes: MetadataRoute.Sitemap = posts.map((post) => ({
+    const postRoutes: MetadataRoute.Sitemap = allPosts.map((post) => ({
       url: `${SITE_URL}/posts/${post.slug}`,
       // Use the publishedAt or createdAt date, fallback to current
       lastModified: new Date(post.publishedAt || post.createdAt || Date.now()),

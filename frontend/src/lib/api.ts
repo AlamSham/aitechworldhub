@@ -6,17 +6,23 @@ type JsonInit = {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
   body?: unknown;
   token?: string;
+  revalidateSeconds?: number;
 };
 
 async function requestJson<T>(path: string, init: JsonInit = {}): Promise<T> {
+  const method = init.method || 'GET';
+  const isPublicGet = !init.token && method === 'GET' && path.startsWith('/api/public/posts');
+
   const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: init.method || 'GET',
+    method,
     headers: {
       'Content-Type': 'application/json',
       ...(init.token ? { Authorization: `Bearer ${init.token}` } : {})
     },
     body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
-    cache: 'no-store'
+    ...(isPublicGet
+      ? { next: { revalidate: init.revalidateSeconds || 300 } }
+      : { cache: 'no-store' })
   });
 
   if (!response.ok) {
@@ -88,14 +94,63 @@ export async function uploadImageToCloudinary(token: string, image: File): Promi
   return payload.image;
 }
 
-export async function fetchPublishedPosts(): Promise<PublishedPost[]> {
-  const response = await requestJson<{ drafts: PublishedPost[] }>('/api/public/posts');
-  return response.drafts;
+export type PaginationMeta = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+};
+
+export async function fetchPublishedPosts(options: {
+  page?: number;
+  limit?: number;
+  category?: string;
+  revalidateSeconds?: number;
+} = {}): Promise<{ drafts: PublishedPost[]; pagination: PaginationMeta }> {
+  const params = new URLSearchParams();
+  if (options.page) params.set('page', String(options.page));
+  if (options.limit) params.set('limit', String(options.limit));
+  if (options.category) params.set('category', options.category);
+  const query = params.toString() ? `?${params.toString()}` : '';
+
+  try {
+    const response = await requestJson<{ drafts: PublishedPost[]; pagination?: PaginationMeta }>(`/api/public/posts${query}`, {
+      revalidateSeconds: options.revalidateSeconds || 300
+    });
+
+    return {
+      drafts: response.drafts || [],
+      pagination: response.pagination || {
+        page: options.page || 1,
+        limit: options.limit || (response.drafts?.length || 0),
+        total: response.drafts?.length || 0,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false
+      }
+    };
+  } catch {
+    return {
+      drafts: [],
+      pagination: {
+        page: options.page || 1,
+        limit: options.limit || 12,
+        total: 0,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false
+      }
+    };
+  }
 }
 
 export async function fetchPublishedPostBySlug(slug: string): Promise<PublishedPost | null> {
   try {
-    const response = await requestJson<{ draft: PublishedPost }>(`/api/public/posts/${slug}`);
+    const response = await requestJson<{ draft: PublishedPost }>(`/api/public/posts/${slug}`, {
+      revalidateSeconds: 300
+    });
     return response.draft;
   } catch {
     return null;
@@ -104,7 +159,9 @@ export async function fetchPublishedPostBySlug(slug: string): Promise<PublishedP
 
 export async function fetchRelatedPosts(slug: string): Promise<PublishedPost[]> {
   try {
-    const response = await requestJson<{ posts: PublishedPost[] }>(`/api/public/posts/${slug}/related`);
+    const response = await requestJson<{ posts: PublishedPost[] }>(`/api/public/posts/${slug}/related`, {
+      revalidateSeconds: 300
+    });
     return response.posts;
   } catch {
     return [];
@@ -115,14 +172,20 @@ export async function fetchRelatedPosts(slug: string): Promise<PublishedPost[]> 
 // User Interactions (Subscriptions & Contact)
 // ==========================================
 
-export async function subscribeNewsletter(email: string): Promise<{ message: string }> {
+export async function subscribeNewsletter(email: string, captchaToken = '', website = ''): Promise<{ message: string }> {
   return requestJson<{ message: string }>('/api/public/subscribe', {
     method: 'POST',
-    body: { email }
+    body: { email, captchaToken, website }
   });
 }
 
-export async function submitContactMessage(payload: { name: string; email: string; message: string }): Promise<{ message: string }> {
+export async function submitContactMessage(payload: {
+  name: string;
+  email: string;
+  message: string;
+  captchaToken?: string;
+  website?: string;
+}): Promise<{ message: string }> {
   return requestJson<{ message: string }>('/api/public/contact', {
     method: 'POST',
     body: payload

@@ -17,6 +17,13 @@ const draftSchema = new mongoose.Schema(
     focusKeyword: { type: String, default: '' },
     readingTime: { type: Number, default: 4 },
     focusRegion: { type: String, default: 'US,UK,AU,CA' },
+    sourceCitations: [{ type: String }],
+    qaChecklist: {
+      factsVerified: { type: Boolean, default: false },
+      citationsAdded: { type: Boolean, default: false },
+      originalityChecked: { type: Boolean, default: false },
+      audienceFitChecked: { type: Boolean, default: false }
+    },
     status: {
       type: String,
       enum: ['draft', 'reviewed', 'published'],

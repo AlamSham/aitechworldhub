@@ -12,10 +12,18 @@ type Props = {
   id: string;
 };
 
+const DEFAULT_QA_CHECKLIST = {
+  factsVerified: false,
+  citationsAdded: false,
+  originalityChecked: false,
+  audienceFitChecked: false
+};
+
 export default function AdminEditor({ id }: Props) {
   const [token, setToken] = useState('');
   const [draft, setDraft] = useState<Draft | null>(null);
   const [tagInput, setTagInput] = useState('');
+  const [citationInput, setCitationInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -40,8 +48,17 @@ export default function AdminEditor({ id }: Props) {
 
     fetchDraftById(storedToken, id)
       .then((row) => {
-        setDraft(row);
+        const hydrated = {
+          ...row,
+          qaChecklist: {
+            ...DEFAULT_QA_CHECKLIST,
+            ...(row.qaChecklist || {})
+          },
+          sourceCitations: row.sourceCitations || []
+        };
+        setDraft(hydrated);
         setTagInput((row.tags || []).join(', '));
+        setCitationInput((row.sourceCitations || []).join('\n'));
       })
       .catch((err) => setError((err as Error).message))
       .finally(() => setLoading(false));
@@ -96,12 +113,29 @@ export default function AdminEditor({ id }: Props) {
           .split(',')
           .map((value) => value.trim())
           .filter(Boolean),
+        sourceCitations: citationInput
+          .split('\n')
+          .map((value) => value.trim())
+          .filter(Boolean),
+        qaChecklist: {
+          ...DEFAULT_QA_CHECKLIST,
+          ...(draft.qaChecklist || {})
+        },
         status: nextStatus || draft.status
       };
 
       const updated = await updateDraft(token, id, payload);
-      setDraft(updated);
+      const hydrated = {
+        ...updated,
+        qaChecklist: {
+          ...DEFAULT_QA_CHECKLIST,
+          ...(updated.qaChecklist || {})
+        },
+        sourceCitations: updated.sourceCitations || []
+      };
+      setDraft(hydrated);
       setTagInput((updated.tags || []).join(', '));
+      setCitationInput((updated.sourceCitations || []).join('\n'));
       setMessage(nextStatus === 'published' ? 'Post published successfully.' : 'Draft saved successfully.');
     } catch (err) {
       setError((err as Error).message);
@@ -220,6 +254,88 @@ export default function AdminEditor({ id }: Props) {
               className="min-h-[420px] rounded-xl border border-slate-300 px-3 py-2"
             />
           </label>
+
+          <label className="grid gap-2 text-sm text-slate-700">
+            Source Citations (one URL per line)
+            <textarea
+              value={citationInput}
+              onChange={(event) => setCitationInput(event.target.value)}
+              className="min-h-24 rounded-xl border border-slate-300 px-3 py-2"
+              placeholder="https://..."
+            />
+          </label>
+
+          <div className="grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+            <p className="font-semibold text-slate-900">Publish QA Checklist (Required)</p>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={Boolean(draft.qaChecklist?.factsVerified)}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    qaChecklist: {
+                      ...DEFAULT_QA_CHECKLIST,
+                      ...(draft.qaChecklist || {}),
+                      factsVerified: event.target.checked
+                    }
+                  })
+                }
+              />
+              Facts reviewed and verified
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={Boolean(draft.qaChecklist?.citationsAdded)}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    qaChecklist: {
+                      ...DEFAULT_QA_CHECKLIST,
+                      ...(draft.qaChecklist || {}),
+                      citationsAdded: event.target.checked
+                    }
+                  })
+                }
+              />
+              Source citations added
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={Boolean(draft.qaChecklist?.originalityChecked)}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    qaChecklist: {
+                      ...DEFAULT_QA_CHECKLIST,
+                      ...(draft.qaChecklist || {}),
+                      originalityChecked: event.target.checked
+                    }
+                  })
+                }
+              />
+              Originality and uniqueness checked
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={Boolean(draft.qaChecklist?.audienceFitChecked)}
+                onChange={(event) =>
+                  setDraft({
+                    ...draft,
+                    qaChecklist: {
+                      ...DEFAULT_QA_CHECKLIST,
+                      ...(draft.qaChecklist || {}),
+                      audienceFitChecked: event.target.checked
+                    }
+                  })
+                }
+              />
+              US/UK audience fit checked
+            </label>
+          </div>
 
           <div className="flex flex-wrap gap-2">
             <button

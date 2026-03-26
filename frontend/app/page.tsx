@@ -1,13 +1,23 @@
 import Link from 'next/link';
+import type { Metadata } from 'next';
 import PostCard from '../src/components/public/PostCard';
 import SubscribeForm from '../src/components/public/SubscribeForm';
 import AdSlot from '../src/components/public/AdSlot';
 import { fetchPublishedPosts } from '../src/lib/api';
 
-const CATEGORIES = ['All', 'AI Tools', 'China vs US', 'Policy', 'How-To', 'Comparison', 'Productivity'];
+const CATEGORIES = ['All', 'AI Tools', 'How-To', 'Productivity', 'Comparison', 'Policy', 'China vs US'];
+
+export const metadata: Metadata = {
+  title: 'Latest Generative AI for US/UK Professionals',
+  description:
+    'Actionable generative AI updates, workflows, and tool analysis for US/UK professionals. China vs US coverage appears as a focused sub-cluster.',
+  alternates: {
+    canonical: '/',
+  },
+};
 
 export default async function HomePage() {
-  const posts = await fetchPublishedPosts();
+  const { drafts: posts } = await fetchPublishedPosts({ page: 1, limit: 7 });
   const featured = posts[0] || null;
   const latest = posts.slice(1, 7);
 
@@ -17,17 +27,17 @@ export default async function HomePage() {
       <section className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white px-8 py-14 text-slate-900 sm:px-12 sm:py-20">
         <div className="relative z-10 mx-auto max-w-3xl text-center">
           <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
-            🔥 AI Intelligence Hub
+            Latest Generative AI Briefing
           </span>
           <h1 className="font-display mt-4 text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl text-slate-900">
-            China vs USA Tech War
+            Generative AI Intelligence
             <br />
             <span className="text-slate-600">
-              AI Insider Intelligence
+              for US/UK Professionals
             </span>
           </h1>
           <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
-            Daily coverage of the global AI race. Practical tools, policy analysis, and productivity guides for students, professionals, and founders.
+            Daily coverage of the latest AI tools, enterprise workflows, and practical productivity use cases. China vs US updates are covered where relevant.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Link
@@ -97,7 +107,7 @@ export default async function HomePage() {
       <section className="rounded-3xl border border-slate-200 bg-slate-50 p-8 text-center sm:p-12">
         <h2 className="font-display text-2xl font-bold text-slate-900">Stay Ahead in the AI Race</h2>
         <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
-          Get daily insights on China vs USA AI developments, free tool recommendations, and productivity tips.
+          Get weekly US/UK-ready AI insights, practical tool stacks, and selective China vs US strategic updates.
         </p>
         <div className="mx-auto mt-6 max-w-md">
           <SubscribeForm />

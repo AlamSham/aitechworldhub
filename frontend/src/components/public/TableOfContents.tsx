@@ -12,20 +12,14 @@ export default function TableOfContents({ markdown }: { markdown: string }) {
   const [headings, setHeadings] = useState<Heading[]>([]);
 
   useEffect(() => {
-    const lines = markdown.split('\n');
-    const extracted: Heading[] = [];
-    for (const line of lines) {
-      const match = line.match(/^(#{2,3})\s+(.+)/);
-      if (match) {
-        const level = match[1].length;
-        const text = match[2].trim();
-        const id = text
-          .toLowerCase()
-          .replace(/[^a-z0-9\s-]/g, '')
-          .replace(/\s+/g, '-');
-        extracted.push({ id, text, level });
-      }
-    }
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>('.article-markdown h2, .article-markdown h3'));
+    const extracted: Heading[] = nodes
+      .filter((node) => node.id)
+      .map((node) => ({
+        id: node.id,
+        text: node.textContent?.trim() || '',
+        level: node.tagName.toLowerCase() === 'h2' ? 2 : 3
+      }));
     setHeadings(extracted);
   }, [markdown]);
 
@@ -37,9 +31,9 @@ export default function TableOfContents({ markdown }: { markdown: string }) {
       <ul className="space-y-1.5">
         {headings.map((h, i) => (
           <li key={i} style={{ paddingLeft: `${(h.level - 2) * 12}px` }}>
-            <span className="block text-sm text-slate-600 transition hover:text-indigo-600 cursor-default">
+            <a href={`#${h.id}`} className="block text-sm text-slate-600 transition hover:text-indigo-600">
               {h.text}
-            </span>
+            </a>
           </li>
         ))}
       </ul>

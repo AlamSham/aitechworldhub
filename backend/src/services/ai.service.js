@@ -19,66 +19,126 @@ function estimateReadingTime(markdown = '') {
   return Math.max(1, Math.ceil(words / 225));
 }
 
+function wordCount(text = '') {
+  return String(text || '').split(/\s+/).filter(Boolean).length;
+}
+
+function normalizeRecentYears(value = '', currentYear = new Date().getFullYear()) {
+  return String(value || '').replace(/\b(20\d{2})\b/g, (match, yearRaw) => {
+    const year = Number(yearRaw);
+    if (!Number.isFinite(year)) return match;
+    // Keep historical references far in the past, but normalize near-stale future/present copy.
+    if (year >= currentYear - 2 && year < currentYear) return String(currentYear);
+    return match;
+  });
+}
+
+function inferAngle(source = {}) {
+  const text = `${source.title || ''} ${source.summary || ''} ${(source.tags || []).join(' ')}`.toLowerCase();
+  if (/(nvidia|amd|huawei|chip|gpu|semiconductor|tsmc|smic)/.test(text)) return 'chip-analysis';
+  if (/(policy|sanction|export control|regulation|law|compliance)/.test(text)) return 'policy';
+  if (/(comparison| vs |versus|head-to-head|rivalry)/.test(text)) return 'comparison';
+  if (/(tutorial|how to|guide|workflow|prompt)/.test(text)) return 'how-to';
+  return 'latest-tools';
+}
+
 function fallbackDraft(source) {
-  const title = `${source.title} - China vs US AI Tools Analysis`;
-  const content = `## What Happened\n\n${source.summary || source.title}\n\n## China vs US Tech Angle\n\n- Which ecosystem is moving faster\n- Product and policy impact\n- What this means for AI users\n\n## Who Should Use This\n\n- Students\n- Job seekers\n- Freelancers and creators\n- Office teams\n- Small business owners\n- Non-tech users\n\n## Student Use Cases\n\n- Where this can help learning\n- 3 practical prompts to test\n\n## Business Productivity Use Cases\n\n- Fast workflows to improve productivity\n- Cost and implementation notes\n\n## Daily Life Use Cases\n\n- Personal planning and daily organization\n- Time-saving task automation\n\n## Final Take\n\nUse this update to pick tools based on outcomes, not hype.`;
+  const currentYear = new Date().getFullYear();
+  const angle = inferAngle(source);
+  const titlePrefix =
+    angle === 'chip-analysis'
+      ? 'AI Chip Update'
+      : angle === 'policy'
+        ? 'AI Policy Update'
+        : angle === 'comparison'
+          ? 'AI Tool Comparison'
+          : 'Latest Generative AI Update';
+  const title = `${titlePrefix}: ${source.title}`;
+  const content = `## What Changed\n\n${source.summary || source.title}\n\n## Why It Matters Right Now\n\nThis update explains the practical impact for people using AI in real work, learning, and daily life.\n\n## Who Should Use This\n\n- Students and job seekers\n- Freelancers and creators\n- Office teams and small businesses\n- Non-technical users exploring automation\n\n## Practical Use Cases\n\n### Student Use Cases\n\n- Research summarization and study planning\n- Mock interview practice\n\n### Business Productivity Use Cases\n\n- Faster content drafting and reporting\n- Repetitive task automation for teams\n\n### Daily Life Use Cases\n\n- Weekly planning and personal task organization\n- Simple assistants for writing and decision support\n\n## Action Checklist\n\n- [ ] Pick one use case to test this week\n- [ ] Track time saved versus your current workflow\n- [ ] Keep only tools that improve real outcomes\n\n## Final Take\n\nFocus on practical value, reliability, and cost before adopting any AI tool at scale.`;
   return {
-    title,
+    title: normalizeRecentYears(title, currentYear),
     slug: slugify(title),
     metaDescription:
-      'China vs US AI tools analysis with student and business productivity takeaways from the latest AI developments.',
-    excerpt: 'Latest AI update explained with China-US context and actionable productivity ideas.',
+      'Latest generative AI update with practical use cases for students, creators, and businesses.',
+    excerpt: 'A practical breakdown of new AI technology and who should use it.',
     slogan: 'Use AI smarter, move faster.',
     contentMarkdown: content,
-    imagePrompt: `Editorial blog hero image about ${source.title}, split-screen China and USA AI tools dashboard style, modern, clean.`,
+    imagePrompt: `Editorial blog hero image about ${source.title}, modern generative AI workflow, clean and professional style.`,
     category: 'AI Tools',
-    focusKeyword: 'china vs us ai tools',
+    focusKeyword: 'latest generative ai',
     readingTime: estimateReadingTime(content)
   };
+}
+
+async function expandShortDraft(existingDraft, source, minWords, maxWords, currentYear) {
+  const expandPrompt = `You are revising an AI blog draft for SEO and dwell time.
+Return strict valid JSON only with keys: title, slug, metaDescription, excerpt, slogan, contentMarkdown, imagePrompt, category, focusKeyword.
+
+Rules:
+- Keep the same topic and intent.
+- Expand contentMarkdown to ${minWords}-${maxWords} words.
+- Keep it practical and readable for US/UK readers.
+- Include these sections if missing: "Who Should Use This", "Practical Use Cases", actionable checklist.
+- Avoid stale year framing like 2025 unless clearly historical. Current year: ${currentYear}.
+
+Current draft JSON:
+${JSON.stringify(existingDraft)}
+
+Source title: ${source.title}
+Source summary: ${source.summary}
+Source url: ${source.link}`;
+
+  const resp = await client.responses.create({
+    model: env.openAiModel,
+    input: expandPrompt
+  });
+
+  const text = resp.output_text?.trim();
+  if (!text) return null;
+  const parsed = JSON.parse(extractJsonObject(text));
+  return parsed;
 }
 
 export async function generateSeoDraftFromSource(source) {
   if (!env.openAiApiKey) return fallbackDraft(source);
 
+  const currentYear = new Date().getFullYear();
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const angle = inferAngle(source);
+  const minWords = Math.max(700, Number(env.articleMinWords || 1100));
+  const maxWords = Math.max(minWords + 100, Number(env.articleMaxWords || 1600));
+
   const prompt = `You are an expert AI technology journalist writing for AITechWorldHub.com — a US-audience blog covering the global AI landscape.
-Your articles must be comprehensive, well-researched, and engaging enough to keep a reader on the page for 3-5 minutes.
+Your writing must be practical, current, non-repetitive, and optimized for high CTR + dwell time.
+Primary audience: ${env.targetFocusRegion}.
+Today is ${todayIso}.
 
 Return strict valid JSON only with keys: title, slug, metaDescription, excerpt, slogan, contentMarkdown, imagePrompt, category, focusKeyword.
 
-COVERAGE SCOPE — You MUST reference multiple AI models and companies where relevant, not just one or two. The major players include:
-- US AI: OpenAI (GPT-4o, GPT-5, ChatGPT), Google (Gemini, Veo 3, Imagen), Anthropic (Claude 3.5/4, Sonnet, Opus), Meta (Llama 3/4), Microsoft (Copilot), Mistral, Perplexity, xAI (Grok)
-- Chinese AI: DeepSeek (V3, R1), Alibaba (Qwen), Kimi 2 (Moonshot AI), Baidu (ERNIE), Zhipu (GLM), ByteDance, MiniMax, StepFun, SenseTime
-- AI Chips: Nvidia (H100, H200, B200, GB200, Blackwell), AMD (MI300X), Intel (Gaudi), Huawei (Ascend 910B/C), TSMC, SMIC
-- Video/Image AI: Sora, Veo 3, Runway, Kling, Pika
+CURRENT TASK ANGLE: ${angle}
+- If angle is "chip-analysis", discuss chips and infra.
+- If angle is "policy", discuss policy/regulation implications.
+- If angle is "comparison", compare tools/models only if the source is truly comparative.
+- If angle is "latest-tools" or "how-to", focus on one concrete modern generative AI topic and workflow.
 
 CONTENT RULES:
-- English output. Practical, authoritative tone with real data points.
-- The article MUST be between 800-1200 words. This is CRITICAL for SEO ranking. Never write less than 800 words. Count carefully.
-- Title MUST be under 60 characters. Use benefit-driven curiosity-gap style titles optimized for Google CTR. Examples: "Why China's Kimi 2 Is Beating Claude at Coding Tasks", "5 Free Chinese AI Tools US Workers Should Try in 2025", "Nvidia vs Huawei: Who Wins the AI Chip War in 2025?"
+- English output. Practical, authoritative tone.
+- Article length target: ${minWords}-${maxWords} words.
+- Title MUST be under 65 characters and specific. Avoid generic repeated patterns and clickbait overpromises.
+- IMPORTANT: Today is in year ${currentYear}. Avoid stale year framing like 2025 in titles/excerpts unless explicitly historical.
 - metaDescription MUST be under 155 characters. Include the focus keyword naturally.
 - Include H2/H3 headings for easy scanning.
-- Pick one primary content bucket from:
-  1) How-to guide
-  2) Comparison (China tool vs US tool, or Model A vs Model B)
-  3) Free tools roundup list
-  4) Prompt engineering pack
-  5) Mistakes to avoid
-  6) Country-specific use case
-  7) Policy/chip war explainer
-  8) AI chipset analysis (Nvidia vs Huawei vs AMD)
-  9) Breaking AI news analysis
-- category must be one of: "AI Tools", "China vs US", "Policy", "How-To", "Comparison", "Productivity"
-- focusKeyword must be 2-4 words that a US user would search on Google. Must be highly specific and trending.
-- REQUIRED sections in the article:
-  - "Who Should Use This" (must cover students, job seekers, freelancers, creators, office employees, small business owners, and non-tech users)
-  - "Student Use Cases" with 2-3 specific actionable examples
-  - "Business Productivity Use Cases" with real workflow examples
-  - "Daily Life Use Cases"
-  - One short actionable checklist (use markdown checkboxes)
-- Include a comparison table (markdown table) comparing at least 2-3 relevant AI tools/models where appropriate.
+- category must be one of: "AI Tools", "Policy", "How-To", "Comparison", "Productivity"
+- focusKeyword must be 2-4 words, practical and searchable.
+- REQUIRED sections:
+  - "Who Should Use This"
+  - "Practical Use Cases" with sub-sections for students, business productivity, and daily life
+  - One short actionable checklist (markdown checkboxes)
+- Include a comparison table only when the topic naturally requires comparison.
 - Mention the source link once near the end.
-- Compare the China-vs-US angle clearly where relevant.
-- Use direct-benefit framing for CTR (clear outcomes in title and excerpt).
+- Do NOT force China-vs-US framing in every article.
+- Include US vs China context only when the source itself is about geopolitics, sanctions, export controls, or direct rivalry.
+- Prioritize fresh generative AI product updates, workflows, and real adoption guidance from recent developments.
 - No markdown code fences in output.
 
 IMPORTANT — REAL TOOL LINKS:
@@ -121,17 +181,30 @@ Source url: ${source.link}`;
 
   try {
     const parsed = JSON.parse(extractJsonObject(text));
-    const contentMd = parsed.contentMarkdown || '';
+    let finalParsed = parsed;
+    const initialWords = wordCount(parsed.contentMarkdown || '');
+    if (initialWords < minWords) {
+      try {
+        const expanded = await expandShortDraft(parsed, source, minWords, maxWords, currentYear);
+        if (expanded?.contentMarkdown) finalParsed = expanded;
+      } catch {
+        // Keep original parsed draft if expansion fails.
+      }
+    }
+
+    const contentMd = normalizeRecentYears(finalParsed.contentMarkdown || '', currentYear);
+    const resolvedTitle = normalizeRecentYears(finalParsed.title || source.title, currentYear);
+    const resolvedSlug = slugify(normalizeRecentYears(finalParsed.slug || resolvedTitle || source.title, currentYear));
     return {
-      title: parsed.title || source.title,
-      slug: slugify(parsed.slug || parsed.title || source.title),
-      metaDescription: parsed.metaDescription || '',
-      excerpt: parsed.excerpt || '',
-      slogan: parsed.slogan || '',
+      title: resolvedTitle,
+      slug: resolvedSlug,
+      metaDescription: normalizeRecentYears(finalParsed.metaDescription || '', currentYear),
+      excerpt: normalizeRecentYears(finalParsed.excerpt || '', currentYear),
+      slogan: finalParsed.slogan || '',
       contentMarkdown: contentMd,
-      imagePrompt: parsed.imagePrompt || '',
-      category: parsed.category || 'AI Tools',
-      focusKeyword: parsed.focusKeyword || '',
+      imagePrompt: finalParsed.imagePrompt || '',
+      category: finalParsed.category || 'AI Tools',
+      focusKeyword: normalizeRecentYears(finalParsed.focusKeyword || '', currentYear),
       readingTime: estimateReadingTime(contentMd)
     };
   } catch {

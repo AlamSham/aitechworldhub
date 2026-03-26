@@ -93,6 +93,12 @@ body {
   color: #3730a3;
 }
 
+.article-markdown h2 > a,
+.article-markdown h3 > a {
+  color: inherit;
+  text-decoration: none;
+}
+
 .article-markdown strong {
   font-weight: 700;
   color: #0f172a;

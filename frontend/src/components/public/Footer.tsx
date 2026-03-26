@@ -20,7 +20,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm leading-relaxed text-slate-500">
-              Daily intelligence on the China vs USA AI race. Practical tools, policy explainers, and productivity guides for students, professionals, and founders.
+              Latest generative AI intelligence for US/UK professionals. Practical tools, workflows, and policy explainers, with selective China vs US strategic coverage.
             </p>
           </div>
 
@@ -41,7 +41,7 @@ export default function Footer() {
 
           <div className="space-y-4">
             <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Stay Updated</h4>
-            <p className="text-sm text-slate-500">Get the latest AI and tech war insights delivered to your inbox.</p>
+            <p className="text-sm text-slate-500">Get the latest generative AI workflows and strategic AI updates in your inbox.</p>
             <SubscribeForm />
           </div>
         </div>

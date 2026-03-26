@@ -21,6 +21,14 @@ const FEEDS = [
   { name: 'Engadget AI', url: 'https://www.engadget.com/rss.xml', country: 'US' },
   { name: 'ZDNet AI', url: 'https://www.zdnet.com/topic/artificial-intelligence/rss.xml', country: 'US' },
   { name: 'SemiAnalysis', url: 'https://semianalysis.substack.com/feed', country: 'US' },
+  { name: 'OpenAI News', url: 'https://openai.com/news/rss.xml', country: 'US' },
+  { name: 'Anthropic News', url: 'https://www.anthropic.com/news/rss.xml', country: 'US' },
+  // UK & Europe Startup/Enterprise AI Sources
+  { name: 'BBC Technology', url: 'http://feeds.bbci.co.uk/news/technology/rss.xml', country: 'UK' },
+  { name: 'The Guardian Technology', url: 'https://www.theguardian.com/technology/rss', country: 'UK' },
+  { name: 'Financial Times Technology', url: 'https://www.ft.com/technology?format=rss', country: 'UK' },
+  { name: 'Sifted', url: 'https://sifted.eu/feed', country: 'UK' },
+  { name: 'UKTN', url: 'https://www.uktech.news/feed', country: 'UK' },
   // China-Focused Tech Sources
   { name: 'SCMP China Tech', url: 'https://www.scmp.com/rss/91/feed', country: 'CN' },
   { name: 'TechNode China', url: 'https://technode.com/feed/', country: 'CN' },
@@ -153,6 +161,20 @@ const US_KEYWORDS = [
   'nvidia'
 ];
 const COMPARISON_KEYWORDS = [' vs ', 'versus', 'compared to', 'comparison', 'race', 'rivalry', 'head-to-head'];
+const GENERATIVE_KEYWORDS = [
+  'generative ai',
+  'genai',
+  'text to image',
+  'text to video',
+  'ai video',
+  'assistant',
+  'agentic',
+  'workflow',
+  'automation',
+  'prompt'
+];
+const POLICY_KEYWORDS = ['policy', 'regulation', 'compliance', 'export control', 'sanction', 'chips act', 'entity list'];
+const CHIP_KEYWORDS = ['nvidia', 'amd', 'intel', 'huawei', 'gpu', 'chip', 'semiconductor', 'tsmc', 'smic', 'blackwell', 'ascend'];
 
 const PRACTICAL_USE_KEYWORDS = [
   'student',
@@ -204,6 +226,19 @@ function normalizeText(value = '') {
   return ` ${String(value).toLowerCase().replace(/\s+/g, ' ').trim()} `;
 }
 
+function titleFingerprint(title = '') {
+  const stopwords = new Set([
+    'the', 'a', 'an', 'and', 'or', 'for', 'with', 'from', 'into', 'about', 'latest',
+    'new', 'update', 'ai', 'how', 'to', 'in', 'on', 'of', 'at', 'is', 'are', 'vs'
+  ]);
+  const tokens = String(title || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((token) => token.length > 2 && !stopwords.has(token));
+  return Array.from(new Set(tokens)).sort().slice(0, 8).join('-');
+}
+
 function keywordHits(text, keywords) {
   return keywords.reduce((count, keyword) => (text.includes(keyword) ? count + 1 : count), 0);
 }
@@ -215,21 +250,36 @@ function evaluateRelevance(rawText = '') {
   const chinaHits = keywordHits(text, CHINA_KEYWORDS);
   const usHits = keywordHits(text, US_KEYWORDS);
   const comparisonHits = keywordHits(text, COMPARISON_KEYWORDS);
+  const generativeHits = keywordHits(text, GENERATIVE_KEYWORDS);
+  const policyHits = keywordHits(text, POLICY_KEYWORDS);
+  const chipHits = keywordHits(text, CHIP_KEYWORDS);
   const practicalHits = keywordHits(text, PRACTICAL_USE_KEYWORDS);
   const excludeHits = keywordHits(text, EXCLUDE_KEYWORDS);
 
   const hasChinaUsPair = chinaHits > 0 && usHits > 0;
   const warSignalStrong = warHits >= Math.max(1, env.minWarHits) || comparisonHits > 0;
 
-  const score = aiHits * 3 + warHits * 2 + practicalHits + comparisonHits * 2 + (hasChinaUsPair ? 2 : 0) - excludeHits * 4;
+  const score =
+    aiHits * 3 +
+    generativeHits * 2 +
+    practicalHits * 2 +
+    comparisonHits +
+    warHits +
+    policyHits +
+    chipHits -
+    excludeHits * 4;
 
-  const relaxedFit = aiHits > 0 && (warHits > 0 || practicalHits > 0);
+  const relaxedFit = aiHits > 0 && (generativeHits > 0 || practicalHits > 0 || warHits > 0 || comparisonHits > 0 || chipHits > 0);
   const strictFit = aiHits > 0 && hasChinaUsPair && warSignalStrong;
-  const hasCoreFit = env.requireChinaUsPair ? strictFit : relaxedFit;
+  const hasCoreFit = env.requireChinaUsPair ? strictFit || relaxedFit : relaxedFit;
   const isRelevant = hasCoreFit && score >= env.sourceMinRelevanceScore;
 
   const tags = ['ai-tools'];
-  if (warHits > 0) tags.push('china-vs-us', 'tech-war');
+  if (generativeHits > 0) tags.push('generative-ai');
+  if (warHits > 0 || hasChinaUsPair) tags.push('china-vs-us', 'tech-war');
+  if (policyHits > 0) tags.push('policy');
+  if (chipHits > 0) tags.push('chips');
+  if (comparisonHits > 0) tags.push('comparison');
   if (hasChinaUsPair) tags.push('china-us-pair');
   if (practicalHits > 0) tags.push('productivity', 'student-business-use');
 
@@ -238,9 +288,13 @@ function evaluateRelevance(rawText = '') {
     score,
     aiHits,
     warHits,
+    hasChinaUsPair,
     chinaHits,
     usHits,
     comparisonHits,
+    generativeHits,
+    policyHits,
+    chipHits,
     practicalHits,
     tags: Array.from(new Set(tags))
   };
@@ -266,6 +320,16 @@ export async function syncSources(maxItems = 20) {
   const imported = [];
   const targetCount = Math.max(1, maxItems);
   const perFeedScanLimit = Math.max(6, Math.ceil(targetCount / FEEDS.length) * 4);
+  const currentYear = new Date().getFullYear();
+  const lookbackDays = Math.max(30, Number(env.latestLookbackDays || 120));
+  const cutoffDate = new Date(Date.now() - 1000 * 60 * 60 * 24 * lookbackDays);
+
+  const recentSourceTitles = await Source.find({})
+    .sort({ createdAt: -1 })
+    .limit(500)
+    .select('title')
+    .lean();
+  const seenFingerprints = new Set(recentSourceTitles.map((s) => titleFingerprint(s.title)).filter(Boolean));
 
   for (const feed of FEEDS) {
     if (imported.length >= targetCount) break;
@@ -284,10 +348,20 @@ export async function syncSources(maxItems = 20) {
       const link = item.link || '';
       if (!link) continue;
 
+      const publishedAt = item.isoDate ? new Date(item.isoDate) : null;
+      if (publishedAt && publishedAt < cutoffDate) continue;
+
+      const itemTitle = item.title || 'Untitled';
+      const oldYearMatch = String(itemTitle).match(/\b(20\d{2})\b/);
+      if (oldYearMatch && Number(oldYearMatch[1]) < currentYear) continue;
+
+      const fingerprint = titleFingerprint(itemTitle);
+      if (fingerprint && seenFingerprints.has(fingerprint)) continue;
+
       const exists = await Source.findOne({ link }).lean();
       if (exists) continue;
 
-      const previewText = `${item.title || ''} ${item.contentSnippet || ''} ${item.content || ''}`;
+      const previewText = `${itemTitle} ${item.contentSnippet || ''} ${item.content || ''}`;
       const previewRelevance = evaluateRelevance(previewText);
       if (!previewRelevance.isRelevant) continue;
 
@@ -296,17 +370,18 @@ export async function syncSources(maxItems = 20) {
       if (!fullRelevance.isRelevant) continue;
 
       const sourceDoc = await Source.create({
-        title: item.title || 'Untitled',
+        title: itemTitle,
         link,
         sourceName: feed.name,
-        publishedAt: item.isoDate ? new Date(item.isoDate) : null,
+        publishedAt,
         summary: item.contentSnippet || item.content || '',
         content,
         tags: fullRelevance.tags,
-        countryFocus: fullRelevance.warHits > 0 ? 'US,CN' : feed.country
+        countryFocus: fullRelevance.hasChinaUsPair || fullRelevance.warHits > 0 ? 'US,CN' : 'global'
       });
 
       imported.push(sourceDoc);
+      if (fingerprint) seenFingerprints.add(fingerprint);
     }
   }
 

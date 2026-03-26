@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { PublishedPost } from '../../models/draft';
 
 type Props = {
@@ -15,10 +16,11 @@ export default function PostCard({ post, featured = false }: Props) {
     >
       <Link href={`/posts/${post.slug}`} className="block">
         {post.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={post.imageUrl}
             alt={post.title}
+            width={1200}
+            height={675}
             className={`w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
               featured ? 'h-56 md:h-full' : 'h-48'
             }`}

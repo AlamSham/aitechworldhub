@@ -14,27 +14,36 @@ export function startSyncJob() {
   cron.schedule(expr, async () => {
     try {
       console.log('[CRON] Starting sync...');
-      const imported = await syncSources(env.maxDraftsPerSync);
+      const maxDrafts = Math.max(1, Number(env.maxDraftsPerSync || 1));
+      const candidateCount = Math.max(maxDrafts * Math.max(3, Number(env.chinaUsRatioEvery || 5)), maxDrafts + 6);
+      const imported = await syncSources(candidateCount);
       console.log(`[CRON] Fetched ${imported.length} new sources. Processing one-by-one...`);
 
-      const total = imported.slice(0, env.maxDraftsPerSync);
-      for (let i = 0; i < total.length; i++) {
+      const total = imported;
+      let createdCount = 0;
+      let skippedCount = 0;
+      for (let i = 0; i < total.length && createdCount < maxDrafts; i++) {
         const source = total[i];
         console.log(`[CRON] [${i + 1}/${total.length}] Generating AI draft for: "${source.title}"`);
         
         const draft = await createDraftFromSource(source, env.defaultAuthor);
-        
-        console.log(`[CRON] [${i + 1}/${total.length}] ✅ Draft created: "${draft.title}" | ${draft.readingTime} min read | ${draft.category}`);
+        if (!draft) {
+          skippedCount += 1;
+          console.log(`[CRON] [${i + 1}/${total.length}] SKIP duplicate/similar/cadence.`);
+        } else {
+          createdCount += 1;
+          console.log(`[CRON] [${i + 1}/${total.length}] DONE: "${draft.title}" | ${draft.readingTime} min read | ${draft.category}`);
+        }
 
         // Wait 5 seconds before processing the next source
         // This gives the AI proper time and avoids rate limits
-        if (i < total.length - 1) {
+        if (i < total.length - 1 && createdCount < maxDrafts) {
           console.log(`[CRON] Waiting 5 seconds before next draft...`);
           await wait(5000);
         }
       }
 
-      console.log(`[CRON] Sync complete. Created ${total.length} drafts.`);
+      console.log(`[CRON] Sync complete. Created ${createdCount} drafts, skipped ${skippedCount}.`);
     } catch (err) {
       console.error('[CRON] Sync failed', err.message);
     }

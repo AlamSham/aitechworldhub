@@ -1,5 +1,12 @@
 export type DraftStatus = 'draft' | 'reviewed' | 'published';
 
+export type QaChecklist = {
+  factsVerified: boolean;
+  citationsAdded: boolean;
+  originalityChecked: boolean;
+  audienceFitChecked: boolean;
+};
+
 export type Draft = {
   _id: string;
   title: string;
@@ -16,6 +23,8 @@ export type Draft = {
   focusKeyword?: string;
   readingTime?: number;
   focusRegion?: string;
+  sourceCitations?: string[];
+  qaChecklist?: QaChecklist;
   status: DraftStatus;
   author?: string;
   publishedAt?: string | null;
@@ -37,6 +46,7 @@ export type PublishedPost = {
   focusKeyword?: string;
   readingTime?: number;
   author?: string;
+  sourceCitations?: string[];
   publishedAt?: string | null;
   createdAt?: string;
 };

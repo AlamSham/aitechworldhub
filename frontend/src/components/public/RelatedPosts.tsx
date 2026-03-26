@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { PublishedPost } from '../../models/draft';
 
 type Props = {
@@ -19,10 +20,11 @@ export default function RelatedPosts({ posts }: Props) {
             className="group grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
           >
             {post.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={post.imageUrl}
                 alt={post.title}
+                width={800}
+                height={450}
                 className="h-32 w-full rounded-xl border border-slate-100 object-cover"
               />
             ) : (

@@ -5,29 +5,41 @@ import Footer from '../src/components/public/Footer';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://aitechworldhub.com';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: 'AITechWorldHub — China vs USA AI & Tech War Intelligence',
+    default: 'AITechWorldHub — Latest Generative AI for US/UK Professionals',
     template: '%s | AITechWorldHub',
   },
   description:
-    'Daily intelligence on the China vs USA tech war, AI tools, and practical productivity guides. Stay ahead with expert analysis on the global AI race.',
+    'Latest generative AI news, workflows, and practical guides for US/UK professionals. China vs US coverage is included as a focused sub-cluster.',
   keywords: [
-    'China vs USA AI',
-    'tech war',
-    'AI tools',
-    'artificial intelligence',
-    'DeepSeek',
-    'ChatGPT',
-    'productivity',
+    'generative AI',
+    'AI workflows',
+    'AI productivity',
+    'US AI tools',
+    'UK AI tools',
+    'AI professionals',
+    'China vs US AI',
   ],
+  alternates: {
+    canonical: '/',
+  },
   openGraph: {
     type: 'website',
-    locale: 'en_US',
+    locale: 'en_GB',
     siteName: 'AITechWorldHub',
+    url: SITE_URL,
+    title: 'AITechWorldHub — Latest Generative AI for US/UK Professionals',
+    description:
+      'Latest generative AI news, workflows, and practical guides for US/UK professionals.',
   },
   twitter: {
     card: 'summary_large_image',
+    title: 'AITechWorldHub',
+    description: 'Latest generative AI insights for US/UK professionals.',
   },
   robots: {
     index: true,

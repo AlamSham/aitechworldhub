@@ -8,23 +8,29 @@ function wait(ms) {
 
 export async function manualSync(req, res, next) {
   try {
-    const max = Number(req.body?.maxItems || env.maxDraftsPerSync);
-    const imported = await syncSources(max);
+    const max = Math.max(1, Number(req.body?.maxItems || env.maxDraftsPerSync));
+    const candidateCount = Math.max(max * Math.max(3, Number(env.chinaUsRatioEvery || 5)), max + 6);
+    const imported = await syncSources(candidateCount);
 
-    const sources = imported.slice(0, env.maxDraftsPerSync);
+    const sources = imported;
     const drafts = [];
+    let skippedDuplicates = 0;
 
-    for (let i = 0; i < sources.length; i++) {
+    for (let i = 0; i < sources.length && drafts.length < max; i++) {
       const source = sources[i];
       console.log(`[SYNC] [${i + 1}/${sources.length}] Generating AI draft for: "${source.title}"`);
       
       const draft = await createDraftFromSource(source, env.defaultAuthor);
-      drafts.push(draft);
-      
-      console.log(`[SYNC] [${i + 1}/${sources.length}] ✅ Done: "${draft.title}" | ${draft.readingTime} min | ${draft.category}`);
+      if (!draft) {
+        skippedDuplicates += 1;
+        console.log(`[SYNC] [${i + 1}/${sources.length}] SKIP duplicate/similar/cadence.`);
+      } else {
+        drafts.push(draft);
+        console.log(`[SYNC] [${i + 1}/${sources.length}] DONE: "${draft.title}" | ${draft.readingTime} min | ${draft.category}`);
+      }
 
       // Wait 5 seconds before processing the next one
-      if (i < sources.length - 1) {
+      if (i < sources.length - 1 && drafts.length < max) {
         console.log(`[SYNC] Cooling down 5s before next draft...`);
         await wait(5000);
       }
@@ -34,6 +40,7 @@ export async function manualSync(req, res, next) {
       message: 'Sync completed',
       importedSources: imported.length,
       createdDrafts: drafts.length,
+      skippedDuplicates,
       draftIds: drafts.map((d) => d._id)
     });
   } catch (err) {

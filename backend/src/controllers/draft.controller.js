@@ -1,5 +1,58 @@
 import { Draft } from '../models/draft.model.js';
 
+function normalizeUrlList(values = []) {
+  return (Array.isArray(values) ? values : [])
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
+}
+
+function extractMarkdownLinks(markdown = '') {
+  const links = [];
+  const regex = /\[[^\]]+\]\((https?:\/\/[^)\s]+)\)/gi;
+  let match = regex.exec(markdown);
+  while (match) {
+    links.push(match[1]);
+    match = regex.exec(markdown);
+  }
+  return links;
+}
+
+function normalizeChecklist(raw = {}) {
+  return {
+    factsVerified: Boolean(raw?.factsVerified),
+    citationsAdded: Boolean(raw?.citationsAdded),
+    originalityChecked: Boolean(raw?.originalityChecked),
+    audienceFitChecked: Boolean(raw?.audienceFitChecked)
+  };
+}
+
+function validatePublishReadiness({ qaChecklist, sourceCitations, contentMarkdown }) {
+  const issues = [];
+  const checklist = normalizeChecklist(qaChecklist);
+  const requiredChecklist = [
+    ['factsVerified', 'Facts verification checkbox is required.'],
+    ['citationsAdded', 'Citation checklist is required.'],
+    ['originalityChecked', 'Originality checklist is required.'],
+    ['audienceFitChecked', 'US/UK audience fit checklist is required.']
+  ];
+
+  for (const [key, message] of requiredChecklist) {
+    if (!checklist[key]) issues.push(message);
+  }
+
+  const citationList = normalizeUrlList(sourceCitations);
+  if (citationList.length < 1) {
+    issues.push('At least one source citation URL is required.');
+  }
+
+  const markdownLinks = extractMarkdownLinks(contentMarkdown || '');
+  if (markdownLinks.length < 2) {
+    issues.push('Content must include at least two inline source links in markdown format.');
+  }
+
+  return issues;
+}
+
 export async function listDrafts(req, res, next) {
   try {
     const status = req.query.status;
@@ -23,6 +76,9 @@ export async function getDraftById(req, res, next) {
 
 export async function updateDraft(req, res, next) {
   try {
+    const current = await Draft.findById(req.params.id).lean();
+    if (!current) return res.status(404).json({ message: 'Draft not found' });
+
     const payload = req.body || {};
     const updates = {};
     const allowedFields = [
@@ -39,6 +95,8 @@ export async function updateDraft(req, res, next) {
       'category',
       'focusKeyword',
       'readingTime',
+      'sourceCitations',
+      'qaChecklist',
       'status'
     ];
 
@@ -48,7 +106,30 @@ export async function updateDraft(req, res, next) {
       }
     }
 
+    if (Object.prototype.hasOwnProperty.call(updates, 'sourceCitations')) {
+      updates.sourceCitations = normalizeUrlList(updates.sourceCitations);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'qaChecklist')) {
+      updates.qaChecklist = {
+        ...normalizeChecklist(current.qaChecklist || {}),
+        ...normalizeChecklist(updates.qaChecklist || {})
+      };
+    }
+
     if (updates.status === 'published') {
+      const effectiveState = {
+        qaChecklist: updates.qaChecklist || current.qaChecklist || {},
+        sourceCitations: updates.sourceCitations || current.sourceCitations || [],
+        contentMarkdown: updates.contentMarkdown || current.contentMarkdown || ''
+      };
+      const qaIssues = validatePublishReadiness(effectiveState);
+      if (qaIssues.length > 0) {
+        return res.status(400).json({
+          message: 'Publish blocked by QA gate. Complete checklist and citations first.',
+          issues: qaIssues
+        });
+      }
       updates.publishedAt = new Date();
     }
     updates.updatedByAdminId = req.admin.id;
@@ -58,7 +139,6 @@ export async function updateDraft(req, res, next) {
       runValidators: true
     }).lean();
 
-    if (!draft) return res.status(404).json({ message: 'Draft not found' });
     return res.json({ message: 'Draft updated', draft });
   } catch (err) {
     return next(err);
@@ -67,12 +147,36 @@ export async function updateDraft(req, res, next) {
 
 export async function listPublishedDrafts(req, res, next) {
   try {
-    const drafts = await Draft.find({ status: 'published' })
-      .sort({ publishedAt: -1, updatedAt: -1 })
-      .select('title slug excerpt metaDescription imageUrl tags category readingTime publishedAt createdAt')
-      .lean();
+    const page = Math.max(1, Number(req.query.page || 1));
+    const limit = Math.min(50, Math.max(1, Number(req.query.limit || 12)));
+    const category = typeof req.query.category === 'string' ? req.query.category.trim() : '';
+    const filter = {
+      status: 'published',
+      ...(category ? { category } : {})
+    };
 
-    return res.json({ drafts });
+    const [drafts, total] = await Promise.all([
+      Draft.find(filter)
+      .sort({ publishedAt: -1, updatedAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .select('title slug excerpt metaDescription imageUrl tags category readingTime publishedAt createdAt author')
+      .lean(),
+      Draft.countDocuments(filter)
+    ]);
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+    return res.json({
+      drafts,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasPrev: page > 1,
+        hasNext: page < totalPages
+      }
+    });
   } catch (err) {
     return next(err);
   }

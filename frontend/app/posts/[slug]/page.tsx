@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import MarkdownArticle from '../../../src/components/public/MarkdownArticle';
 import ShareButtons from '../../../src/components/public/ShareButtons';
@@ -144,10 +145,11 @@ export default async function PostDetailPage({ params }: Props) {
 
         {/* Hero Image */}
         {post.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={post.imageUrl}
             alt={post.title}
+            width={1600}
+            height={900}
             className="h-72 w-full rounded-2xl border border-slate-200 object-cover shadow-lg shadow-slate-900/10 sm:h-96"
           />
         ) : null}

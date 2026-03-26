@@ -2,11 +2,15 @@
 
 import { useState } from 'react';
 import { submitContactMessage } from '../../lib/api';
+import CaptchaField from './CaptchaField';
 
 export default function ContactForm() {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
+  const [website, setWebsite] = useState('');
+  const [captchaToken, setCaptchaToken] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [responseMsg, setResponseMsg] = useState('');
+  const captchaEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,10 +18,22 @@ export default function ContactForm() {
 
     setStatus('loading');
     try {
-      const res = await submitContactMessage(formData);
+      if (captchaEnabled && !captchaToken) {
+        setStatus('error');
+        setResponseMsg('Please complete the captcha challenge.');
+        return;
+      }
+
+      const res = await submitContactMessage({
+        ...formData,
+        website,
+        captchaToken
+      });
       setStatus('success');
       setResponseMsg(res.message || 'Message sent successfully! We will get back to you soon.');
       setFormData({ name: '', email: '', message: '' });
+      setWebsite('');
+      setCaptchaToken('');
     } catch (err: any) {
       setStatus('error');
       setResponseMsg(err.message || 'Failed to send message.');
@@ -67,6 +83,18 @@ export default function ContactForm() {
           placeholder="How can we help?"
         />
       </div>
+
+      <input
+        type="text"
+        tabIndex={-1}
+        autoComplete="off"
+        value={website}
+        onChange={(e) => setWebsite(e.target.value)}
+        className="hidden"
+        aria-hidden="true"
+      />
+
+      {captchaEnabled ? <CaptchaField onTokenChange={setCaptchaToken} /> : null}
 
       <button 
         type="submit" 
