@@ -21,7 +21,7 @@ export default function PostCard({ post, featured = false }: Props) {
             alt={post.title}
             width={1200}
             height={675}
-            className={`w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+            className={`w-full object-contain bg-slate-100 transition-transform duration-500 group-hover:scale-105 ${
               featured ? 'h-56 md:h-full' : 'h-48'
             }`}
           />
