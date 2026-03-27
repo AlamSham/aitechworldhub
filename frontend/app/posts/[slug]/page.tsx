@@ -150,7 +150,7 @@ export default async function PostDetailPage({ params }: Props) {
             alt={post.title}
             width={1600}
             height={900}
-            className="h-72 w-full rounded-2xl border border-slate-200 bg-slate-100 object-contain shadow-lg shadow-slate-900/10 sm:h-96"
+            className="w-full aspect-video rounded-2xl border border-slate-200 object-cover shadow-lg shadow-slate-900/10"
           />
         ) : null}
 
