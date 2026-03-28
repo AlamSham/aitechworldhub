@@ -117,6 +117,8 @@ export async function createDraftFromSource(source, author) {
   let mergedTags = Array.from(new Set([...(source.tags || []), 'ai-tools']));
   if (!chinaUsSource) {
     mergedTags = mergedTags.filter((tag) => !['china-vs-us', 'china-us-pair', 'tech-war'].includes(tag));
+  } else {
+    mergedTags.push('china-vs-us');
   }
 
   const draft = await Draft.create({

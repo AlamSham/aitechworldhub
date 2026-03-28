@@ -35,9 +35,14 @@ function normalizeRecentYears(value = '', currentYear = new Date().getFullYear()
 
 function inferAngle(source = {}) {
   const text = `${source.title || ''} ${source.summary || ''} ${(source.tags || []).join(' ')}`.toLowerCase();
+
+  const chinaSignal = /(china|chinese|huawei|alibaba|deepseek|qwen|beijing|smic)/.test(text);
+  const usSignal = /(u\.s\.|united states|america|openai|google|microsoft|nvidia|anthropic)/.test(text);
+  if (chinaSignal && usSignal) return 'china-us-rivalry';
+
   if (/(nvidia|amd|huawei|chip|gpu|semiconductor|tsmc|smic)/.test(text)) return 'chip-analysis';
   if (/(policy|sanction|export control|regulation|law|compliance)/.test(text)) return 'policy';
-  if (/(comparison| vs |versus|head-to-head|rivalry)/.test(text)) return 'comparison';
+  if (/(comparison|\bvs\b|versus|head-to-head|rivalry)/.test(text)) return 'comparison';
   if (/(tutorial|how to|guide|workflow|prompt)/.test(text)) return 'how-to';
   return 'latest-tools';
 }
@@ -116,10 +121,11 @@ Today is ${todayIso}.
 Return strict valid JSON only with keys: title, slug, metaDescription, excerpt, slogan, contentMarkdown, imagePrompt, category, focusKeyword.
 
 CURRENT TASK ANGLE: ${angle}
-- If angle is "chip-analysis", discuss chips and infra.
-- If angle is "policy", discuss policy/regulation implications.
-- If angle is "comparison", compare tools/models only if the source is truly comparative.
-- If angle is "latest-tools" or "how-to", focus on one concrete modern generative AI topic and workflow.
+- If angle is "china-us-rivalry", extensively compare the China and US AI landscape, technology, or policy based on the source. "category" MUST be "Comparison" or "Policy".
+- If angle is "chip-analysis", discuss chips and infra. "category" MUST be "AI Tools" or "Policy".
+- If angle is "policy", discuss policy/regulation implications. "category" MUST be "Policy".
+- If angle is "comparison", compare tools/models comprehensively based on the source. "category" MUST be "Comparison".
+- If angle is "latest-tools" or "how-to", focus on one concrete modern generative AI topic and workflow. "category" MUST be "AI Tools" or "How-To".
 
 CONTENT RULES:
 - English output. Practical, authoritative tone.
@@ -134,10 +140,8 @@ CONTENT RULES:
   - "Who Should Use This"
   - "Practical Use Cases" with sub-sections for students, business productivity, and daily life
   - One short actionable checklist (markdown checkboxes)
-- Include a comparison table only when the topic naturally requires comparison.
+- Include a comparison table only when the topic naturally requires comparison (like in "comparison" or "china-us-rivalry" angle).
 - Mention the source link once near the end.
-- Do NOT force China-vs-US framing in every article.
-- Include US vs China context only when the source itself is about geopolitics, sanctions, export controls, or direct rivalry.
 - Prioritize fresh generative AI product updates, workflows, and real adoption guidance from recent developments.
 - No markdown code fences in output.
 
