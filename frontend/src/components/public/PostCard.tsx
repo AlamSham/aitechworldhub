@@ -21,14 +21,14 @@ export default function PostCard({ post, featured = false }: Props) {
             alt={post.title}
             width={1200}
             height={675}
-            className={`w-full object-contain bg-slate-100 transition-transform duration-500 group-hover:scale-105 ${
-              featured ? 'h-56 md:h-full' : 'h-48'
+            className={`aspect-video w-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+              featured ? 'h-full' : ''
             }`}
           />
         ) : (
           <div
-            className={`flex w-full items-center justify-center bg-slate-100 ${
-              featured ? 'h-56 md:h-full' : 'h-48'
+            className={`flex w-full items-center justify-center bg-slate-100 aspect-video ${
+              featured ? 'h-full' : ''
             }`}
           >
             <span className="text-4xl">🤖</span>

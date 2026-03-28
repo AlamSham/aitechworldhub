@@ -25,10 +25,10 @@ export default function RelatedPosts({ posts }: Props) {
                 alt={post.title}
                 width={800}
                 height={450}
-                className="h-32 w-full rounded-xl border border-slate-100 bg-slate-100 object-contain"
+                className="aspect-video w-full rounded-xl border border-slate-100 bg-slate-100 object-cover"
               />
             ) : (
-              <div className="flex h-32 w-full items-center justify-center rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50">
+              <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50">
                 <span className="text-2xl">📰</span>
               </div>
             )}
