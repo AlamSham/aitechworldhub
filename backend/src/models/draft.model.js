@@ -30,6 +30,11 @@ const draftSchema = new mongoose.Schema(
       default: 'draft'
     },
     publishedAt: { type: Date, default: null },
+    socialCaptions: {
+      facebook: { type: String, default: '' },
+      linkedin: { type: String, default: '' },
+      reddit: { type: String, default: '' }
+    },
     author: { type: String, default: '' },
     updatedByAdminId: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin', default: null }
   },

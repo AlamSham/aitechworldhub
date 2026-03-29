@@ -336,6 +336,45 @@ export default function AdminEditor({ id }: Props) {
               US/UK audience fit checked
             </label>
           </div>
+          
+          {draft.socialCaptions && (
+            <div className="grid gap-4 rounded-xl border border-sky-200 bg-sky-50 p-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-display font-semibold text-sky-900">Semi-Automated Social Sharing</h3>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-sky-600 bg-white px-2 py-0.5 rounded-full border border-sky-200">AI Generated</span>
+              </div>
+              <p className="text-xs text-sky-800/70">These captions are generated automatically when you publish. Copy them to your social media platforms below.</p>
+              
+              <div className="grid gap-3">
+                {[
+                  { id: 'facebook', label: 'Facebook / X', content: draft.socialCaptions.facebook },
+                  { id: 'linkedin', label: 'LinkedIn', content: draft.socialCaptions.linkedin },
+                  { id: 'reddit', label: 'Reddit', content: draft.socialCaptions.reddit }
+                ].map((platform) => (
+                  <div key={platform.id} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-600">{platform.label}</span>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(platform.content);
+                          alert(`${platform.label} caption copied!`);
+                        }}
+                        className="text-[10px] font-bold text-sky-700 hover:text-sky-900"
+                      >
+                        Copy to Clipboard
+                      </button>
+                    </div>
+                    <textarea
+                      readOnly
+                      value={platform.content}
+                      className="w-full rounded-lg border border-slate-200 bg-white/80 p-2.5 text-xs text-slate-700 focus:outline-none"
+                      rows={platform.id === 'reddit' ? 2 : 5}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="flex flex-wrap gap-2">
             <button

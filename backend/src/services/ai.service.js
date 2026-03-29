@@ -215,3 +215,53 @@ Source url: ${source.link}`;
     return fallbackDraft(source);
   }
 }
+
+/**
+ * Generates platform-optimized captions for Facebook, LinkedIn, and Reddit.
+ */
+export async function generateSocialCaptions(title, excerpt, slug) {
+  const postUrl = `${env.frontendOrigin}/posts/${slug}`;
+  
+  if (!env.openAiApiKey) {
+    return {
+      facebook: `${title}\n\nRead more: ${postUrl}`,
+      linkedin: `${title}\n\nRead more: ${postUrl}`,
+      reddit: `${title}\n\n${postUrl}`
+    };
+  }
+
+  const prompt = `You are a social media strategist for AITechWorldHub.
+Generate 3 distinct, high-engagement social media captions for this new blog post.
+
+Article Title: ${title}
+Article Excerpt: ${excerpt}
+Link: ${postUrl}
+
+Return strict valid JSON only with keys: facebook, linkedin, reddit.
+
+Guidelines:
+- facebook: Conversational, emoji-rich, call-to-action, 3 relevant hashtags, and the link.
+- linkedin: Professional, authoritative, use 2-3 bullet points for value, hashtags, and the link.
+- reddit: Catchy title format, concise, informative, and the link. 
+
+No markdown fences. Return ONLY the JSON object.`;
+
+  try {
+    const resp = await client.responses.create({
+      model: env.openAiModel,
+      input: prompt
+    });
+
+    const text = resp.output_text?.trim();
+    if (!text) throw new Error('Empty AI response');
+
+    return JSON.parse(extractJsonObject(text));
+  } catch (error) {
+    console.error('[AI] Social caption generation failed:', error.message);
+    return {
+      facebook: `${title}\n\nCheck it out here: ${postUrl} #AI #Tech`,
+      linkedin: `${title}\n\nRead our latest analysis on AI: ${postUrl}`,
+      reddit: `${title} - ${postUrl}`
+    };
+  }
+}

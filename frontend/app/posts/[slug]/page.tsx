@@ -6,6 +6,8 @@ import ShareButtons from '../../../src/components/public/ShareButtons';
 import RelatedPosts from '../../../src/components/public/RelatedPosts';
 import TableOfContents from '../../../src/components/public/TableOfContents';
 import AdSlot from '../../../src/components/public/AdSlot';
+import ReadingProgressBar from '../../../src/components/public/ReadingProgressBar';
+import BackToTop from '../../../src/components/public/BackToTop';
 import { fetchPublishedPostBySlug, fetchRelatedPosts } from '../../../src/lib/api';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://aitechworldhub.com';
@@ -93,6 +95,8 @@ export default async function PostDetailPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <ReadingProgressBar />
+      <BackToTop />
       <main className="grid gap-8">
         {/* Post Header */}
         <header className="grid gap-5">
@@ -159,6 +163,11 @@ export default async function PostDetailPage({ params }: Props) {
           <div className="grid gap-6">
             {/* In-Article Ad */}
             <AdSlot variant="in-article" />
+
+            {/* Mobile Table of Contents */}
+            <div className="lg:hidden">
+              <TableOfContents markdown={post.contentMarkdown || ''} />
+            </div>
 
             {/* Article Content */}
             <MarkdownArticle content={post.contentMarkdown || ''} />

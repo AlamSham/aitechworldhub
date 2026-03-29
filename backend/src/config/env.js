@@ -29,5 +29,8 @@ export const env = {
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || '',
   cloudinaryFolder: process.env.CLOUDINARY_FOLDER || 'ai-blog/drafts',
   turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || '',
+  enablePublishQaGate: String(process.env.ENABLE_PUBLISH_QA_GATE || 'false').toLowerCase() === 'true',
+  
+  turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || '',
   enablePublishQaGate: String(process.env.ENABLE_PUBLISH_QA_GATE || 'false').toLowerCase() === 'true'
 };

@@ -26,6 +26,11 @@ export type Draft = {
   sourceCitations?: string[];
   qaChecklist?: QaChecklist;
   status: DraftStatus;
+  socialCaptions?: {
+    facebook: string;
+    linkedin: string;
+    reddit: string;
+  };
   author?: string;
   publishedAt?: string | null;
   createdAt: string;

@@ -1,5 +1,6 @@
 import { Draft } from '../models/draft.model.js';
 import { env } from '../config/env.js';
+import { generateSocialCaptions } from '../services/ai.service.js';
 
 function normalizeUrlList(values = []) {
   return (Array.isArray(values) ? values : [])
@@ -133,10 +134,29 @@ export async function updateDraft(req, res, next) {
           });
         }
       }
-      updates.publishedAt = new Date();
+      if (!current.publishedAt) {
+        updates.publishedAt = new Date();
+      }
+
+      // Generate Social Captions if not already present
+      if (!current.socialCaptions || (!current.socialCaptions.facebook && !current.socialCaptions.linkedin && !current.socialCaptions.reddit)) {
+        try {
+          const captions = await generateSocialCaptions(
+            updates.title || current.title,
+            updates.excerpt || current.excerpt,
+            updates.slug || current.slug
+          );
+          if (captions) {
+            updates.socialCaptions = captions;
+          }
+        } catch (err) {
+          console.error('[SOCIAL] Failed to generate captions during publish:', err.message);
+        }
+      }
     }
     updates.updatedByAdminId = req.admin.id;
 
+    // Use findOneAndUpdate to get the updated document
     const draft = await Draft.findByIdAndUpdate(req.params.id, updates, {
       new: true,
       runValidators: true
