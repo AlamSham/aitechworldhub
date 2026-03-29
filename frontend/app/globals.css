@@ -10,11 +10,19 @@
   --accent-light: #e0e7ff;
 }
 
+html {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
 body {
   background: white;
   color: var(--text);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .font-display {
@@ -129,10 +137,7 @@ body {
   overflow: hidden;
 }
 
-/* Smooth scroll */
-html {
-  scroll-behavior: smooth;
-}
+
 
 /* Removed hero gradient */
 

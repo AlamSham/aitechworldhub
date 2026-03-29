@@ -121,7 +121,7 @@ Today is ${todayIso}.
 Return strict valid JSON only with keys: title, slug, metaDescription, excerpt, slogan, contentMarkdown, imagePrompt, category, focusKeyword.
 
 CURRENT TASK ANGLE: ${angle}
-- If angle is "china-us-rivalry", extensively compare the China and US AI landscape, technology, or policy based on the source. "category" MUST be "Comparison" or "Policy".
+- If angle is "china-us-rivalry", extensively compare the China and US AI landscape, technology, or policy based on the source. "category" MUST be "China vs US".
 - If angle is "chip-analysis", discuss chips and infra. "category" MUST be "AI Tools" or "Policy".
 - If angle is "policy", discuss policy/regulation implications. "category" MUST be "Policy".
 - If angle is "comparison", compare tools/models comprehensively based on the source. "category" MUST be "Comparison".
@@ -134,7 +134,7 @@ CONTENT RULES:
 - IMPORTANT: Today is in year ${currentYear}. Avoid stale year framing like 2025 in titles/excerpts unless explicitly historical.
 - metaDescription MUST be under 155 characters. Include the focus keyword naturally.
 - Include H2/H3 headings for easy scanning.
-- category must be one of: "AI Tools", "Policy", "How-To", "Comparison", "Productivity"
+- category must be one of: "AI Tools", "Policy", "How-To", "Comparison", "Productivity", "China vs US"
 - focusKeyword must be 2-4 words, practical and searchable.
 - REQUIRED sections:
   - "Who Should Use This"

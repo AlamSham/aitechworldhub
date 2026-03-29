@@ -75,7 +75,7 @@ export default async function PostsPage({ searchParams }: Props) {
     <main className="grid gap-8">
       <header className="grid gap-3">
         <span className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">US/UK AI Briefing</span>
-        <h1 className="font-display text-4xl font-bold text-slate-900">
+        <h1 className="font-display text-2xl font-bold text-slate-900 sm:text-3xl lg:text-4xl">
           {category ? `${category} Articles` : 'Latest Generative AI Coverage'}
         </h1>
         <p className="max-w-xl text-sm text-slate-500">
@@ -83,24 +83,26 @@ export default async function PostsPage({ searchParams }: Props) {
           {pagination?.total ? ` ${pagination.total} total articles.` : ''}
         </p>
 
-        {/* Category Filter Chips */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {CATEGORIES.map((cat) => {
-            const isActive = category === cat || (!category && cat === 'All');
-            return (
-              <Link
-                key={cat}
-                href={buildPostsPath(cat === 'All' ? '' : cat, 1)}
-                className={`rounded-full border px-4 py-2 text-xs font-semibold shadow-sm transition 
-                  ${isActive 
-                    ? 'border-indigo-600 bg-indigo-600 text-white' 
-                    : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700'
-                  }`}
-              >
-                {cat}
-              </Link>
-            );
-          })}
+        {/* Category Filter Chips — horizontal scroll on mobile */}
+        <div className="mt-3 w-full overflow-hidden">
+          <div className="flex gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-x-visible sm:pb-0">
+            {CATEGORIES.map((cat) => {
+              const isActive = category === cat || (!category && cat === 'All');
+              return (
+                <Link
+                  key={cat}
+                  href={buildPostsPath(cat === 'All' ? '' : cat, 1)}
+                  className={`flex-shrink-0 rounded-full border px-3 py-2 text-xs font-semibold shadow-sm transition sm:px-4
+                    ${isActive
+                      ? 'border-indigo-600 bg-indigo-600 text-white'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700'
+                    }`}
+                >
+                  {cat}
+                </Link>
+              );
+            })}
+          </div>
         </div>
       </header>
 
@@ -110,7 +112,7 @@ export default async function PostsPage({ searchParams }: Props) {
         </div>
       ) : (
         <div className="grid gap-6">
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {posts.map((post, i) => (
               <div key={post.slug}>
                 <PostCard post={post} />

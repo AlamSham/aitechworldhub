@@ -131,7 +131,7 @@ export async function createDraftFromSource(source, author) {
     contentMarkdown: gen.contentMarkdown,
     imagePrompt: gen.imagePrompt,
     tags: mergedTags,
-    category: gen.category || 'AI Tools',
+    category: chinaUsSource ? 'China vs US' : (gen.category || 'AI Tools'),
     focusKeyword: gen.focusKeyword || '',
     readingTime: gen.readingTime || 4,
     focusRegion: env.targetFocusRegion,
