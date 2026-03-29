@@ -4,6 +4,9 @@ import ContactForm from '../../src/components/public/ContactForm';
 export const metadata: Metadata = {
   title: 'Contact Us',
   description: 'Get in touch with the AITechWorldHub team.',
+  alternates: {
+    canonical: '/contact',
+  },
 };
 
 export default function ContactPage() {

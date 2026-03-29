@@ -24,9 +24,6 @@ export const metadata: Metadata = {
     'AI professionals',
     'China vs US AI',
   ],
-  alternates: {
-    canonical: '/',
-  },
   openGraph: {
     type: 'website',
     locale: 'en_GB',

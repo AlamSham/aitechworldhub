@@ -3,6 +3,9 @@ import { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'About Us',
   description: 'Learn more about AITechWorldHub and our mission to decode the global AI race.',
+  alternates: {
+    canonical: '/about',
+  },
 };
 
 export default function AboutPage() {
