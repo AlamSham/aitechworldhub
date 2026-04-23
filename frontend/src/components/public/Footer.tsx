@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import SubscribeForm from './SubscribeForm';
-
-const CATEGORIES = ['AI Tools', 'China vs US', 'Policy', 'How-To', 'Comparison', 'Productivity'];
+import { TOPIC_HUBS } from '../../lib/site-taxonomy';
 
 const FOOTER_LINKS = [
   { href: '/', label: 'Home' },
   { href: '/posts', label: 'Articles' },
+  { href: '/topics', label: 'Topics' },
   { href: '/about', label: 'About Us' },
+  { href: '/editorial-policy', label: 'Editorial Policy' },
   { href: '/contact', label: 'Contact' },
   { href: '/privacy', label: 'Privacy Policy' },
   { href: '/terms', label: 'Terms' },
@@ -38,17 +39,17 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Categories */}
+          {/* Topic hubs */}
           <div className="space-y-4">
-            <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Categories</h4>
+            <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Topic Hubs</h4>
             <div className="flex flex-wrap gap-2">
-              {CATEGORIES.map((cat) => (
+              {TOPIC_HUBS.map((hub) => (
                 <Link
-                  key={cat}
-                  href={`/posts?category=${encodeURIComponent(cat)}`}
+                  key={hub.slug}
+                  href={`/topics/${hub.slug}`}
                   className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-900"
                 >
-                  {cat}
+                  {hub.shortLabel}
                 </Link>
               ))}
             </div>

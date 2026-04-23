@@ -7,6 +7,7 @@ import { fetchPublishedPosts } from '../../src/lib/api';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://aitechworldhub.com';
 const PAGE_SIZE = 12;
 const CATEGORIES = ['All', 'AI Tools', 'How-To', 'Productivity', 'Comparison', 'Policy', 'China vs US'];
+export const revalidate = 300;
 
 type Props = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -48,6 +49,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     alternates: {
       canonical: canonicalPath
     },
+    robots: page > 1 ? { index: false, follow: true } : undefined,
     openGraph: {
       title,
       description,
@@ -70,9 +72,37 @@ export default async function PostsPage({ searchParams }: Props) {
   const totalPages = pagination?.totalPages || 1;
   const prevPath = page > 1 ? buildPostsPath(category, page - 1) : '';
   const nextPath = page < totalPages ? buildPostsPath(category, page + 1) : '';
+  const pagePath = buildPostsPath(category, page);
+  const collectionSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: category ? `${category} Articles` : 'Latest Generative AI Coverage',
+    url: `${SITE_URL}${pagePath}`,
+    description: category
+      ? `${category} articles focused on practical generative AI outcomes for US/UK professionals.`
+      : 'Latest generative AI articles, practical workflows, and selective China vs US strategic coverage for US/UK professionals.',
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'AITechWorldHub',
+      url: SITE_URL,
+    },
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: posts.map((post, index) => ({
+        '@type': 'ListItem',
+        position: index + 1 + (page - 1) * PAGE_SIZE,
+        url: `${SITE_URL}/posts/${post.slug}`,
+        name: post.title,
+      })),
+    },
+  };
 
   return (
     <main className="grid gap-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+      />
       <header className="grid gap-3">
         <span className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600">US/UK AI Briefing</span>
         <h1 className="font-display text-2xl font-bold text-slate-900 sm:text-3xl lg:text-4xl">

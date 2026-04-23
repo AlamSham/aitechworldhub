@@ -54,6 +54,7 @@ export type PublishedPost = {
   sourceCitations?: string[];
   publishedAt?: string | null;
   createdAt?: string;
+  updatedAt?: string;
 };
 
 export type AdminUser = {

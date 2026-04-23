@@ -3,9 +3,36 @@ import type { Metadata } from 'next';
 import PostCard from '../src/components/public/PostCard';
 import SubscribeForm from '../src/components/public/SubscribeForm';
 import AdSlot from '../src/components/public/AdSlot';
+import SeoFaqSection from '../src/components/public/SeoFaqSection';
 import { fetchPublishedPosts } from '../src/lib/api';
+import { TOPIC_HUBS } from '../src/lib/site-taxonomy';
 
 const CATEGORIES = ['All', 'AI Tools', 'How-To', 'Productivity', 'Comparison', 'Policy', 'China vs US'];
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://aitechworldhub.com';
+const HOMEPAGE_FAQS = [
+  {
+    question: 'How often does AITechWorldHub publish new AI articles?',
+    answer:
+      'New articles are added whenever verified AI product, workflow, infrastructure, or policy developments matter for US and UK readers. We prioritize quality and source-backed updates over publishing on a fixed volume schedule.',
+  },
+  {
+    question: 'How are articles sourced and verified on this site?',
+    answer:
+      'Each published article is expected to be grounded in primary or reputable source material, and our article pages now surface source references directly so readers and search engines can trace the underlying reporting.',
+  },
+  {
+    question: 'What topics does AITechWorldHub focus on most?',
+    answer:
+      'The site focuses on practical generative AI tools, workflows, model comparisons, infrastructure developments, and policy shifts that affect professionals, founders, and teams following the AI space.',
+  },
+  {
+    question: 'Why can a new article take time to appear in Google Search?',
+    answer:
+      'Google may discover a new URL before it chooses to crawl and index it. That timing depends on crawl demand, site trust, internal linking, content uniqueness, and the overall quality signals of the page and domain.',
+  },
+];
+
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: 'Latest Generative AI for US/UK Professionals',
@@ -20,9 +47,35 @@ export default async function HomePage() {
   const { drafts: posts } = await fetchPublishedPosts({ page: 1, limit: 7 });
   const featured = posts[0] || null;
   const latest = posts.slice(1, 7);
+  const homepageSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'Latest Generative AI for US/UK Professionals',
+    url: SITE_URL,
+    description:
+      'Actionable generative AI updates, workflows, and tool analysis for US/UK professionals.',
+    isPartOf: {
+      '@type': 'WebSite',
+      name: 'AITechWorldHub',
+      url: SITE_URL,
+    },
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: posts.map((post, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: `${SITE_URL}/posts/${post.slug}`,
+        name: post.title,
+      })),
+    },
+  };
 
   return (
     <main className="grid gap-8 sm:gap-10 lg:gap-12">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homepageSchema) }}
+      />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-5 py-10 text-slate-900 sm:rounded-3xl sm:px-10 sm:py-16 lg:px-12 lg:py-20">
@@ -57,6 +110,33 @@ export default async function HomePage() {
               className="flex-shrink-0 rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 sm:px-4"
             >
               {cat}
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid gap-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="font-display text-2xl font-bold text-slate-900">Explore Topic Hubs</h2>
+            <p className="mt-2 max-w-2xl text-sm text-slate-500">
+              Browse tightly focused topic pages built to strengthen site structure around the AI themes we cover most deeply.
+            </p>
+          </div>
+          <Link href="/topics" className="text-sm font-semibold text-slate-600 hover:text-slate-900">
+            View all hubs
+          </Link>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {TOPIC_HUBS.map((hub) => (
+            <Link
+              key={hub.slug}
+              href={`/topics/${hub.slug}`}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-4 transition hover:border-slate-300 hover:bg-white"
+            >
+              <h3 className="text-sm font-bold text-slate-900">{hub.shortLabel}</h3>
+              <p className="mt-2 text-xs leading-5 text-slate-500">{hub.description}</p>
             </Link>
           ))}
         </div>
@@ -100,6 +180,23 @@ export default async function HomePage() {
             ))}
           </div>
         )}
+
+        {posts.length > 0 ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-5">
+            <h2 className="text-sm font-bold uppercase tracking-[0.18em] text-slate-500">Quick Article Links</h2>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {posts.map((post) => (
+                <Link
+                  key={`quick-${post.slug}`}
+                  href={`/posts/${post.slug}`}
+                  className="text-sm font-medium text-slate-700 transition hover:text-slate-900"
+                >
+                  {post.title}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </section>
 
       {/* Newsletter CTA */}
@@ -112,6 +209,13 @@ export default async function HomePage() {
           <SubscribeForm />
         </div>
       </section>
+
+      <SeoFaqSection
+        title="AITechWorldHub FAQ"
+        intro="These FAQs are visible on the page and marked up with JSON-LD to strengthen semantic understanding of the site."
+        items={HOMEPAGE_FAQS}
+        includeSchema
+      />
 
       {/* Bottom Ad */}
       <AdSlot variant="between-posts" />

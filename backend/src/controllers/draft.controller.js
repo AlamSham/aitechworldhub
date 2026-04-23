@@ -183,7 +183,7 @@ export async function listPublishedDrafts(req, res, next) {
       .sort({ publishedAt: -1, updatedAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .select('title slug excerpt metaDescription imageUrl tags category readingTime publishedAt createdAt author')
+      .select('title slug excerpt metaDescription imageUrl tags category focusKeyword readingTime publishedAt createdAt updatedAt author')
       .lean(),
       Draft.countDocuments(filter)
     ]);
@@ -208,7 +208,7 @@ export async function listPublishedDrafts(req, res, next) {
 export async function getPublishedDraftBySlug(req, res, next) {
   try {
     const draft = await Draft.findOne({ slug: req.params.slug, status: 'published' })
-      .select('title slug excerpt metaDescription slogan contentMarkdown imageUrl tags category focusKeyword readingTime publishedAt createdAt author')
+      .select('title slug excerpt metaDescription slogan contentMarkdown imageUrl tags category focusKeyword readingTime publishedAt createdAt updatedAt author sourceCitations')
       .lean();
 
     if (!draft) {

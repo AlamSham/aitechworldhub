@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Image from 'next/image';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import MarkdownArticle from '../../../src/components/public/MarkdownArticle';
 import ShareButtons from '../../../src/components/public/ShareButtons';
@@ -8,13 +9,43 @@ import TableOfContents from '../../../src/components/public/TableOfContents';
 import AdSlot from '../../../src/components/public/AdSlot';
 import ReadingProgressBar from '../../../src/components/public/ReadingProgressBar';
 import BackToTop from '../../../src/components/public/BackToTop';
-import { fetchPublishedPostBySlug, fetchRelatedPosts } from '../../../src/lib/api';
+import { fetchPublishedPostBySlug, fetchPublishedPosts, fetchRelatedPosts } from '../../../src/lib/api';
+import { getAuthorPath, getRelevantTopicHubsForPost } from '../../../src/lib/site-taxonomy';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://aitechworldhub.com';
+export const revalidate = 300;
 
 type Props = {
   params: Promise<{ slug: string }>;
 };
+
+function getHostname(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '');
+  } catch {
+    return url;
+  }
+}
+
+export async function generateStaticParams() {
+  const allPosts = [];
+  let page = 1;
+  let hasNext = true;
+
+  while (hasNext) {
+    const { drafts, pagination } = await fetchPublishedPosts({
+      page,
+      limit: 50,
+      revalidateSeconds: 300,
+    });
+    allPosts.push(...drafts);
+    hasNext = Boolean(pagination?.hasNext);
+    page += 1;
+    if (page > 100) break;
+  }
+
+  return allPosts.map((post) => ({ slug: post.slug }));
+}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -25,6 +56,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const url = `${SITE_URL}/posts/${post.slug}`;
+  const authorName = post.author || 'AITechWorldHub Team';
+  const authorUrl = `${SITE_URL}${getAuthorPath(authorName)}`;
 
   return {
     title: post.title,
@@ -33,6 +66,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     alternates: {
       canonical: url,
     },
+    authors: [{ name: authorName, url: authorUrl }],
+    publisher: 'AITechWorldHub',
     openGraph: {
       title: post.title,
       description: post.metaDescription || post.excerpt,
@@ -64,29 +99,66 @@ export default async function PostDetailPage({ params }: Props) {
   }
 
   const url = `${SITE_URL}/posts/${post.slug}`;
+  const authorName = post.author || 'AITechWorldHub Team';
+  const authorPath = getAuthorPath(authorName);
+  const authorUrl = `${SITE_URL}${authorPath}`;
+  const citationLinks = Array.from(new Set((post.sourceCitations || []).filter(Boolean)));
+  const publishedDate = post.publishedAt || post.createdAt || undefined;
+  const modifiedDate = post.updatedAt || post.publishedAt || post.createdAt || undefined;
+  const relatedTopicHubs = getRelevantTopicHubsForPost(post, 3);
 
   // JSON-LD Structured Data
   const jsonLd = {
     '@context': 'https://schema.org',
-    '@type': 'Article',
+    '@type': 'BlogPosting',
     headline: post.title,
     description: post.metaDescription || post.excerpt,
-    image: post.imageUrl || undefined,
-    datePublished: post.publishedAt || post.createdAt,
-    dateModified: post.publishedAt || post.createdAt,
+    image: post.imageUrl ? [post.imageUrl] : undefined,
+    datePublished: publishedDate,
+    dateModified: modifiedDate,
     author: {
       '@type': 'Person',
-      name: post.author || 'AITechWorldHub Team',
+      name: authorName,
+      url: authorUrl,
     },
     publisher: {
       '@type': 'Organization',
       name: 'AITechWorldHub',
+      url: SITE_URL,
     },
     mainEntityOfPage: {
       '@type': 'WebPage',
       '@id': url,
     },
-    keywords: post.tags?.join(', '),
+    articleSection: post.category || 'AI',
+    keywords: post.tags,
+    citation: citationLinks,
+    wordCount: post.contentMarkdown?.split(/\s+/).filter(Boolean).length,
+    isAccessibleForFree: true,
+  };
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: SITE_URL,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Articles',
+        item: `${SITE_URL}/posts`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: post.title,
+        item: url,
+      },
+    ],
   };
 
   return (
@@ -95,11 +167,22 @@ export default async function PostDetailPage({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+      />
       <ReadingProgressBar />
       <BackToTop />
       <main className="grid gap-8">
         {/* Post Header */}
         <header className="grid gap-5">
+          <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+            <Link href="/" className="transition hover:text-slate-600">Home</Link>
+            <span>/</span>
+            <Link href="/posts" className="transition hover:text-slate-600">Articles</Link>
+            <span>/</span>
+            <span className="text-slate-500">{post.title}</span>
+          </nav>
           <div className="flex flex-wrap items-center gap-2">
             {post.category ? (
               <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
@@ -123,6 +206,16 @@ export default async function PostDetailPage({ params }: Props) {
                 })}
               </span>
             ) : null}
+            {post.updatedAt && post.updatedAt !== post.publishedAt ? (
+              <span className="text-xs text-slate-400">
+                Updated{' '}
+                {new Date(post.updatedAt).toLocaleDateString('en-US', {
+                  month: 'long',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </span>
+            ) : null}
           </div>
 
           <h1 className="font-display text-3xl font-bold leading-tight text-slate-900 sm:text-4xl lg:text-5xl">
@@ -139,7 +232,11 @@ export default async function PostDetailPage({ params }: Props) {
                 {(post.author || 'T')[0].toUpperCase()}
               </div>
               <div>
-                <p className="text-sm font-semibold text-slate-900">{post.author || 'AITechWorldHub Team'}</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  <Link href={authorPath} className="transition hover:text-indigo-600">
+                    {authorName}
+                  </Link>
+                </p>
                 <p className="text-xs text-slate-400">Author</p>
               </div>
             </div>
@@ -174,6 +271,49 @@ export default async function PostDetailPage({ params }: Props) {
 
             {/* Bottom Ad */}
             <AdSlot variant="in-article" />
+
+            {citationLinks.length > 0 ? (
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-900/5">
+                <h2 className="text-lg font-bold text-slate-900">Sources and References</h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Primary links used in this article for verification and follow-up reading.
+                </p>
+                <ul className="mt-4 grid gap-3">
+                  {citationLinks.map((citation) => (
+                    <li key={citation}>
+                      <a
+                        href={citation}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm font-medium text-slate-700 underline decoration-slate-300 underline-offset-4 transition hover:text-slate-900"
+                      >
+                        {getHostname(citation)}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {relatedTopicHubs.length > 0 ? (
+              <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm shadow-slate-900/5">
+                <h2 className="text-lg font-bold text-slate-900">Explore Related Topic Hubs</h2>
+                <p className="mt-2 text-sm text-slate-500">
+                  Continue browsing this subject through curated internal hub pages.
+                </p>
+                <div className="mt-4 flex flex-wrap gap-3">
+                  {relatedTopicHubs.map((hub) => (
+                    <Link
+                      key={hub.slug}
+                      href={`/topics/${hub.slug}`}
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
+                    >
+                      {hub.shortLabel}
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             {/* Tags */}
             {post.tags && post.tags.length > 0 ? (

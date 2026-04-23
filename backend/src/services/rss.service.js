@@ -219,7 +219,23 @@ const EXCLUDE_KEYWORDS = [
   'music chart',
   'sports',
   'recipe',
-  'travel guide'
+  'travel guide',
+  'adult',
+  'erotic',
+  'porn',
+  'nsfw',
+  'onlyfans',
+  'sex toy',
+  'escort',
+  'sext',
+  'ai girlfriend',
+  'girlfriend app',
+  'dating sim',
+  'portable speaker',
+  'bluetooth speaker',
+  'soundbar',
+  'earbuds',
+  'headphones'
 ];
 
 function normalizeText(value = '') {
@@ -255,9 +271,17 @@ function evaluateRelevance(rawText = '') {
   const chipHits = keywordHits(text, CHIP_KEYWORDS);
   const practicalHits = keywordHits(text, PRACTICAL_USE_KEYWORDS);
   const excludeHits = keywordHits(text, EXCLUDE_KEYWORDS);
+  const hasHardExclude = excludeHits > 0;
 
   const hasChinaUsPair = chinaHits > 0 && usHits > 0;
   const warSignalStrong = warHits >= Math.max(1, env.minWarHits) || comparisonHits > 0;
+  const hasHighIntentTopic =
+    generativeHits > 0 ||
+    policyHits > 0 ||
+    chipHits > 0 ||
+    comparisonHits > 0 ||
+    hasChinaUsPair ||
+    warSignalStrong;
 
   const score =
     aiHits * 3 +
@@ -269,10 +293,13 @@ function evaluateRelevance(rawText = '') {
     chipHits -
     excludeHits * 4;
 
-  const relaxedFit = aiHits > 0 && (generativeHits > 0 || practicalHits > 0 || warHits > 0 || comparisonHits > 0 || chipHits > 0);
+  const relaxedFit =
+    aiHits > 0 &&
+    hasHighIntentTopic &&
+    (generativeHits > 0 || warHits > 0 || comparisonHits > 0 || chipHits > 0 || policyHits > 0 || practicalHits > 1);
   const strictFit = aiHits > 0 && hasChinaUsPair && warSignalStrong;
   const hasCoreFit = env.requireChinaUsPair ? strictFit || relaxedFit : relaxedFit;
-  const isRelevant = hasCoreFit && score >= env.sourceMinRelevanceScore;
+  const isRelevant = !hasHardExclude && hasCoreFit && score >= env.sourceMinRelevanceScore;
 
   const tags = ['ai-tools'];
   if (generativeHits > 0) tags.push('generative-ai');

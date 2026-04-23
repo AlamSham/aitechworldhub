@@ -59,13 +59,13 @@ function fallbackDraft(source) {
           ? 'AI Tool Comparison'
           : 'Latest Generative AI Update';
   const title = `${titlePrefix}: ${source.title}`;
-  const content = `## What Changed\n\n${source.summary || source.title}\n\n## Why It Matters Right Now\n\nThis update explains the practical impact for people using AI in real work, learning, and daily life.\n\n## Who Should Use This\n\n- Students and job seekers\n- Freelancers and creators\n- Office teams and small businesses\n- Non-technical users exploring automation\n\n## Practical Use Cases\n\n### Student Use Cases\n\n- Research summarization and study planning\n- Mock interview practice\n\n### Business Productivity Use Cases\n\n- Faster content drafting and reporting\n- Repetitive task automation for teams\n\n### Daily Life Use Cases\n\n- Weekly planning and personal task organization\n- Simple assistants for writing and decision support\n\n## Action Checklist\n\n- [ ] Pick one use case to test this week\n- [ ] Track time saved versus your current workflow\n- [ ] Keep only tools that improve real outcomes\n\n## Final Take\n\nFocus on practical value, reliability, and cost before adopting any AI tool at scale.`;
+  const content = `## What Changed\n\n${source.summary || source.title}\n\n## Key Facts\n\n- Summarize the main announcement in plain English.\n- Note any product, policy, pricing, or availability detail that is directly supported by the source.\n- Avoid adding claims that are not verifiable from the source article.\n\n## Why It Matters\n\nExplain the immediate impact for professionals, builders, or teams following AI closely.\n\n## Who Should Pay Attention\n\n- Teams evaluating AI tools or infrastructure\n- Professionals tracking practical AI adoption\n- Readers comparing vendor or policy changes\n\n## Questions to Check Before Adopting\n\n- What changed versus the previous version or policy?\n- Is there a real workflow benefit, or mostly a marketing announcement?\n- What limits, costs, or rollout constraints still matter?\n\n## Source\n\n- ${source.link || 'Add source link before publishing'}`;
   return {
     title: normalizeRecentYears(title, currentYear),
     slug: slugify(title),
     metaDescription:
-      'Latest generative AI update with practical use cases for students, creators, and businesses.',
-    excerpt: 'A practical breakdown of new AI technology and who should use it.',
+      'A source-grounded generative AI update covering what changed and why it matters.',
+    excerpt: 'A source-grounded breakdown of a timely AI development and its practical impact.',
     slogan: 'Use AI smarter, move faster.',
     contentMarkdown: content,
     imagePrompt: `Editorial blog hero image about ${source.title}, modern generative AI workflow, clean and professional style.`,
@@ -83,7 +83,11 @@ Rules:
 - Keep the same topic and intent.
 - Expand contentMarkdown to ${minWords}-${maxWords} words.
 - Keep it practical and readable for US/UK readers.
-- Include these sections if missing: "Who Should Use This", "Practical Use Cases", actionable checklist.
+- Make the article source-grounded, specific, and non-repetitive.
+- Keep section headings specific to the topic instead of repeating the same boilerplate across articles.
+- If the source is mostly news, prefer sections like "What Changed", "Why It Matters", "Key Details", and "Source Notes".
+- Do not add generic advice for students, daily life, or businesses unless the source clearly supports it.
+- End with a short "Sources" section using the provided source URL.
 - Avoid stale year framing like 2025 unless clearly historical. Current year: ${currentYear}.
 
 Current draft JSON:
@@ -136,12 +140,12 @@ CONTENT RULES:
 - Include H2/H3 headings for easy scanning.
 - category must be one of: "AI Tools", "Policy", "How-To", "Comparison", "Productivity", "China vs US"
 - focusKeyword must be 2-4 words, practical and searchable.
-- REQUIRED sections:
-  - "Who Should Use This"
-  - "Practical Use Cases" with sub-sections for students, business productivity, and daily life
-  - One short actionable checklist (markdown checkboxes)
+- Ground every major claim in the source material. Do not invent benchmarks, dates, pricing, availability, quotes, or product names.
+- Avoid boilerplate filler. Do not force generic "students / daily life / business productivity" sections unless the topic genuinely supports them.
+- Prefer topic-specific sections such as "What Changed", "Why It Matters", "Key Details", "Risks", "Comparison", or "What to Watch Next".
+- Add one short "Who Should Care" or "Who Should Pay Attention" section only when it naturally fits the topic.
 - Include a comparison table only when the topic naturally requires comparison (like in "comparison" or "china-us-rivalry" angle).
-- Mention the source link once near the end.
+- End with a short "Sources" section and include the provided source URL in markdown format.
 - Prioritize fresh generative AI product updates, workflows, and real adoption guidance from recent developments.
 - No markdown code fences in output.
 
