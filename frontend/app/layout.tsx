@@ -85,13 +85,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Google AdSense — Uncomment and add your real publisher ID after AdSense approval
+        {/* Google AdSense */}
         <script
           async
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXX"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4518508932731576"
           crossOrigin="anonymous"
         />
-        */}
       </head>
       <body suppressHydrationWarning>
         <script
