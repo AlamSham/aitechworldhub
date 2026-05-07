@@ -6,9 +6,19 @@ import AdSlot from '../src/components/public/AdSlot';
 import SeoFaqSection from '../src/components/public/SeoFaqSection';
 import { fetchPublishedPosts } from '../src/lib/api';
 import { TOPIC_HUBS } from '../src/lib/site-taxonomy';
+import {
+  generateWebSite,
+  generateCollectionPage,
+  generateOpenGraph,
+  generateTwitterCard,
+  generateCanonicalUrl,
+  generateMetaDescription,
+  generateRobotsTag,
+  escapeJsonLd,
+  SEO_CONFIG,
+} from '../src/lib/seo';
 
 const CATEGORIES = ['All', 'AI Tools', 'How-To', 'Productivity', 'Comparison', 'Policy', 'China vs US'];
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://aitechworldhub.com';
 const HOMEPAGE_FAQS = [
   {
     question: 'How often does AITechWorldHub publish new AI articles?',
@@ -34,47 +44,45 @@ const HOMEPAGE_FAQS = [
 
 export const revalidate = 300;
 
+// Generate metadata using SEO library
+const homeDescription = 'Actionable generative AI updates, workflows, and tool analysis for US/UK professionals. China vs US coverage appears as a focused sub-cluster.';
+
 export const metadata: Metadata = {
   title: 'Latest Generative AI for US/UK Professionals',
-  description:
-    'Actionable generative AI updates, workflows, and tool analysis for US/UK professionals. China vs US coverage appears as a focused sub-cluster.',
+  description: homeDescription,
   alternates: {
-    canonical: '/',
+    canonical: generateCanonicalUrl('/'),
   },
+  robots: generateRobotsTag(),
 };
 
 export default async function HomePage() {
   const { drafts: posts } = await fetchPublishedPosts({ page: 1, limit: 7 });
   const featured = posts[0] || null;
   const latest = posts.slice(1, 7);
-  const homepageSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
-    name: 'Latest Generative AI for US/UK Professionals',
-    url: SITE_URL,
-    description:
-      'Actionable generative AI updates, workflows, and tool analysis for US/UK professionals.',
-    isPartOf: {
-      '@type': 'WebSite',
-      name: 'AITechWorldHub',
-      url: SITE_URL,
-    },
-    mainEntity: {
-      '@type': 'ItemList',
-      itemListElement: posts.map((post, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        url: `${SITE_URL}/posts/${post.slug}`,
-        name: post.title,
-      })),
-    },
-  };
+
+  // Generate structured data using SEO library
+  const websiteSchema = generateWebSite();
+  
+  const collectionSchema = generateCollectionPage({
+    title: 'Latest Generative AI for US/UK Professionals',
+    slug: '',
+    description: 'Actionable generative AI updates, workflows, and tool analysis for US/UK professionals.',
+    posts: posts.map(post => ({
+      title: post.title,
+      slug: post.slug,
+    })),
+  });
 
   return (
     <main className="grid gap-8 sm:gap-10 lg:gap-12">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(homepageSchema) }}
+        dangerouslySetInnerHTML={{ __html: escapeJsonLd(JSON.stringify(websiteSchema)) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: escapeJsonLd(JSON.stringify(collectionSchema)) }}
       />
 
       {/* Hero Section */}

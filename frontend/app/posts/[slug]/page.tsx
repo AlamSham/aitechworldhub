@@ -11,6 +11,18 @@ import ReadingProgressBar from '../../../src/components/public/ReadingProgressBa
 import BackToTop from '../../../src/components/public/BackToTop';
 import { fetchPublishedPostBySlug, fetchPublishedPosts, fetchRelatedPosts } from '../../../src/lib/api';
 import { getAuthorPath, getRelevantTopicHubsForPost } from '../../../src/lib/site-taxonomy';
+import {
+  generateBlogPosting,
+  generateBreadcrumb,
+  generateOpenGraph,
+  generateTwitterCard,
+  generateCanonicalUrl,
+  generateMetaDescription,
+  generateMetaKeywords,
+  generateRobotsTag,
+  escapeJsonLd,
+  SEO_CONFIG,
+} from '../../../src/lib/seo';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://aitechworldhub.com';
 export const revalidate = 300;
@@ -55,35 +67,65 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: 'Post Not Found' };
   }
 
-  const url = `${SITE_URL}/posts/${post.slug}`;
   const authorName = post.author || 'AITechWorldHub Team';
-  const authorUrl = `${SITE_URL}${getAuthorPath(authorName)}`;
+  const authorPath = getAuthorPath(authorName);
+  const authorUrl = `${SITE_URL}${authorPath}`;
+
+  // Map post to SEO library format
+  const seoPost = {
+    _id: post._id,
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    content: post.contentMarkdown || '',
+    imageUrl: post.imageUrl,
+    publishedAt: post.publishedAt || undefined,
+    updatedAt: post.updatedAt || undefined,
+    author: { 
+      name: authorName, 
+      slug: authorPath.replace('/authors/', '') 
+    },
+    category: post.category,
+    tags: post.tags,
+    focusKeyword: post.focusKeyword,
+  };
+
+  // Generate metadata using SEO library
+  const openGraph = generateOpenGraph(seoPost);
+  const twitterCard = generateTwitterCard(seoPost);
+  const canonical = generateCanonicalUrl(`/posts/${post.slug}`);
+  const description = post.metaDescription || generateMetaDescription(post.excerpt);
+  const keywords = generateMetaKeywords(seoPost);
+  const robots = generateRobotsTag();
 
   return {
     title: post.title,
-    description: post.metaDescription || post.excerpt,
-    keywords: post.tags?.join(', '),
+    description,
+    keywords,
     alternates: {
-      canonical: url,
+      canonical,
     },
     authors: [{ name: authorName, url: authorUrl }],
-    publisher: 'AITechWorldHub',
+    publisher: SEO_CONFIG.siteName,
     openGraph: {
-      title: post.title,
-      description: post.metaDescription || post.excerpt,
-      url,
-      type: 'article',
-      publishedTime: post.publishedAt || undefined,
-      images: post.imageUrl ? [{ url: post.imageUrl, width: 1200, height: 630, alt: post.title }] : [],
-      siteName: 'AITechWorldHub',
-      locale: 'en_US',
+      title: openGraph['og:title'],
+      description: openGraph['og:description'],
+      url: openGraph['og:url'],
+      type: openGraph['og:type'] as 'article',
+      publishedTime: openGraph['og:article:published_time'],
+      modifiedTime: openGraph['og:article:modified_time'],
+      images: openGraph['og:image'] ? [{ url: openGraph['og:image'], width: 1200, height: 630, alt: post.title }] : [],
+      siteName: openGraph['og:site_name'],
+      locale: openGraph['og:locale'],
     },
     twitter: {
-      card: 'summary_large_image',
-      title: post.title,
-      description: post.metaDescription || post.excerpt,
-      images: post.imageUrl ? [post.imageUrl] : [],
+      card: twitterCard['twitter:card'] as 'summary_large_image',
+      title: twitterCard['twitter:title'],
+      description: twitterCard['twitter:description'],
+      images: twitterCard['twitter:image'] ? [twitterCard['twitter:image']] : [],
+      site: twitterCard['twitter:site'],
     },
+    robots,
   };
 }
 
@@ -98,78 +140,53 @@ export default async function PostDetailPage({ params }: Props) {
     notFound();
   }
 
-  const url = `${SITE_URL}/posts/${post.slug}`;
   const authorName = post.author || 'AITechWorldHub Team';
   const authorPath = getAuthorPath(authorName);
-  const authorUrl = `${SITE_URL}${authorPath}`;
-  const citationLinks = Array.from(new Set((post.sourceCitations || []).filter(Boolean)));
-  const publishedDate = post.publishedAt || post.createdAt || undefined;
-  const modifiedDate = post.updatedAt || post.publishedAt || post.createdAt || undefined;
   const relatedTopicHubs = getRelevantTopicHubsForPost(post, 3);
 
-  // JSON-LD Structured Data
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BlogPosting',
-    headline: post.title,
-    description: post.metaDescription || post.excerpt,
-    image: post.imageUrl ? [post.imageUrl] : undefined,
-    datePublished: publishedDate,
-    dateModified: modifiedDate,
+  // Map post to SEO library format
+  const seoPost = {
+    _id: post._id,
+    title: post.title,
+    slug: post.slug,
+    excerpt: post.excerpt,
+    content: post.contentMarkdown || '',
+    imageUrl: post.imageUrl,
+    publishedAt: post.publishedAt || undefined,
+    updatedAt: post.updatedAt || undefined,
+    createdAt: post.createdAt || undefined,
     author: {
-      '@type': 'Person',
       name: authorName,
-      url: authorUrl,
+      slug: authorPath.replace('/authors/', ''),
     },
-    publisher: {
-      '@type': 'Organization',
-      name: 'AITechWorldHub',
-      url: SITE_URL,
-    },
-    mainEntityOfPage: {
-      '@type': 'WebPage',
-      '@id': url,
-    },
-    articleSection: post.category || 'AI',
-    keywords: post.tags,
-    citation: citationLinks,
+    category: post.category,
+    tags: post.tags,
+    focusKeyword: post.focusKeyword,
     wordCount: post.contentMarkdown?.split(/\s+/).filter(Boolean).length,
-    isAccessibleForFree: true,
   };
-  const breadcrumbJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: 'Home',
-        item: SITE_URL,
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: 'Articles',
-        item: `${SITE_URL}/posts`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: post.title,
-        item: url,
-      },
-    ],
-  };
+
+  // Generate structured data using SEO library
+  const blogPostingSchema = generateBlogPosting(seoPost);
+
+  const breadcrumbSchema = generateBreadcrumb([
+    { name: 'Home', path: '/' },
+    { name: 'Articles', path: '/posts' },
+    { name: post.title, path: `/posts/${post.slug}` },
+  ]);
+
+  const url = `${SITE_URL}/posts/${post.slug}`;
+  const authorUrl = `${SITE_URL}${authorPath}`;
+  const citationLinks = Array.from(new Set((post.sourceCitations || []).filter(Boolean)));
 
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: escapeJsonLd(JSON.stringify(blogPostingSchema)) }}
       />
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: escapeJsonLd(JSON.stringify(breadcrumbSchema)) }}
       />
       <ReadingProgressBar />
       <BackToTop />

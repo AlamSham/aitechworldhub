@@ -9,8 +9,17 @@ import {
   getAuthorProfile,
   getPostsForAuthor,
 } from '../../../src/lib/site-taxonomy';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://aitechworldhub.com';
+import {
+  generatePerson,
+  generateBreadcrumb,
+  generateOpenGraph,
+  generateTwitterCard,
+  generateCanonicalUrl,
+  generateMetaDescription,
+  generateRobotsTag,
+  escapeJsonLd,
+  SEO_CONFIG,
+} from '../../../src/lib/seo';
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -34,17 +43,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const profile = getAuthorProfile(slug, authorName);
 
+  // Generate metadata using SEO library
+  const canonical = generateCanonicalUrl(`/authors/${slug}`);
+  const description = generateMetaDescription(profile.description);
+  const robots = generateRobotsTag();
+
   return {
     title: `${profile.name} Author Page`,
-    description: profile.description,
+    description,
     alternates: {
-      canonical: `/authors/${slug}`,
+      canonical,
     },
     openGraph: {
-      title: `${profile.name} | AITechWorldHub`,
-      description: profile.description,
-      url: `${SITE_URL}/authors/${slug}`,
+      title: `${profile.name} | ${SEO_CONFIG.siteName}`,
+      description,
+      url: canonical,
+      type: 'profile',
+      siteName: SEO_CONFIG.siteName,
     },
+    robots,
   };
 }
 
@@ -64,36 +81,29 @@ export default async function AuthorPage({ params }: Props) {
     notFound();
   }
 
-  const profileSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'ProfilePage',
-    url: `${SITE_URL}/authors/${slug}`,
-    name: `${profile.name} author page`,
-    mainEntity: {
-      '@type': 'Person',
-      name: profile.name,
-      description: profile.description,
-      jobTitle: profile.role,
-      url: `${SITE_URL}/authors/${slug}`,
-    },
-    hasPart: authorPosts.slice(0, 10).map((post) => ({
-      '@type': 'Article',
-      headline: post.title,
-      url: `${SITE_URL}/posts/${post.slug}`,
-      datePublished: post.publishedAt || post.createdAt,
-      author: {
-        '@type': 'Person',
-        name: profile.name,
-        url: `${SITE_URL}/authors/${slug}`,
-      },
-    })),
-  };
+  // Generate structured data using SEO library
+  const personSchema = generatePerson({
+    name: profile.name,
+    slug,
+    bio: profile.description,
+    jobTitle: profile.role,
+    expertise: profile.expertise,
+  });
+
+  const breadcrumbSchema = generateBreadcrumb([
+    { name: 'Home', path: '/' },
+    { name: profile.name, path: `/authors/${slug}` },
+  ]);
 
   return (
     <main className="grid gap-8">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(profileSchema) }}
+        dangerouslySetInnerHTML={{ __html: escapeJsonLd(JSON.stringify(personSchema)) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: escapeJsonLd(JSON.stringify(breadcrumbSchema)) }}
       />
 
       <section className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">

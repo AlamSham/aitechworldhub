@@ -8,8 +8,17 @@ import {
   getTopicHubBySlug,
   TOPIC_HUBS,
 } from '../../../src/lib/site-taxonomy';
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://aitechworldhub.com';
+import {
+  generateCollectionPage,
+  generateBreadcrumb,
+  generateOpenGraph,
+  generateTwitterCard,
+  generateCanonicalUrl,
+  generateMetaDescription,
+  generateRobotsTag,
+  escapeJsonLd,
+  SEO_CONFIG,
+} from '../../../src/lib/seo';
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -29,17 +38,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: 'Topic Not Found' };
   }
 
+  // Generate metadata using SEO library
+  const canonical = generateCanonicalUrl(`/topics/${hub.slug}`);
+  const description = generateMetaDescription(hub.description);
+  const robots = generateRobotsTag();
+
   return {
     title: hub.title,
-    description: hub.description,
+    description,
     alternates: {
-      canonical: `/topics/${hub.slug}`,
+      canonical,
     },
     openGraph: {
-      title: `${hub.title} | AITechWorldHub`,
-      description: hub.description,
-      url: `${SITE_URL}/topics/${hub.slug}`,
+      title: `${hub.title} | ${SEO_CONFIG.siteName}`,
+      description,
+      url: canonical,
+      type: 'website',
+      siteName: SEO_CONFIG.siteName,
     },
+    robots,
   };
 }
 
@@ -58,28 +75,32 @@ export default async function TopicHubPage({ params }: Props) {
     notFound();
   }
 
-  const collectionSchema = {
-    '@context': 'https://schema.org',
-    '@type': 'CollectionPage',
-    name: hub.title,
-    url: `${SITE_URL}/topics/${hub.slug}`,
+  // Generate structured data using SEO library
+  const collectionSchema = generateCollectionPage({
+    title: hub.title,
+    slug: hub.slug,
     description: hub.description,
-    mainEntity: {
-      '@type': 'ItemList',
-      itemListElement: relatedPosts.map((post, index) => ({
-        '@type': 'ListItem',
-        position: index + 1,
-        url: `${SITE_URL}/posts/${post.slug}`,
-        name: post.title,
-      })),
-    },
-  };
+    posts: relatedPosts.map(post => ({
+      title: post.title,
+      slug: post.slug,
+    })),
+  });
+
+  const breadcrumbSchema = generateBreadcrumb([
+    { name: 'Home', path: '/' },
+    { name: 'Topics', path: '/topics' },
+    { name: hub.shortLabel, path: `/topics/${hub.slug}` },
+  ]);
 
   return (
     <main className="grid gap-8">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+        dangerouslySetInnerHTML={{ __html: escapeJsonLd(JSON.stringify(collectionSchema)) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: escapeJsonLd(JSON.stringify(breadcrumbSchema)) }}
       />
 
       <header className="grid gap-4 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
