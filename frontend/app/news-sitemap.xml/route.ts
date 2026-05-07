@@ -17,17 +17,26 @@ export async function GET() {
   });
 
   const newsSitemap = `<?xml version="1.0" encoding="UTF-8"?>
-<news:sitemapindex xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
 ${newsPosts.map((post) => {
     const publishedDate = post.publishedAt || post.createdAt;
-    const isoDate = publishedDate ? new Date(publishedDate).toISOString() : now.toISOString();
+    const pubDate = publishedDate ? new Date(publishedDate) : now;
+    const formattedDate = pubDate.toISOString();
     
-    return `  <news:sitemap>
-    <loc>${SITE_URL}/news/${post.slug}</loc>
-    <lastmod>${isoDate.substring(0, 10)}</lastmod>
-  </news:sitemap>`;
+    return `  <url>
+    <loc>${SITE_URL}/posts/${post.slug}</loc>
+    <news:news>
+      <news:publication>
+        <news:name>AITechWorldHub</news:name>
+        <news:language>en</news:language>
+      </news:publication>
+      <news:publication_date>${formattedDate}</news:publication_date>
+      <news:title>${escapeXml(post.title)}</news:title>
+    </news:news>
+  </url>`;
   }).join('\n')}
-</news:sitemapindex>`;
+</urlset>`;
 
   return new NextResponse(newsSitemap, {
     headers: {
@@ -35,4 +44,13 @@ ${newsPosts.map((post) => {
       'Cache-Control': 'public, max-age=300, s-maxage=300',
     },
   });
+}
+
+function escapeXml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
