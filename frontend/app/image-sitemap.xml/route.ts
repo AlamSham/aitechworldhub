@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { fetchAllPublishedPosts } from '../../../src/lib/site-taxonomy';
+import { fetchAllPublishedPosts } from '../../src/lib/site-taxonomy';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://aitechworldhub.com';
 
