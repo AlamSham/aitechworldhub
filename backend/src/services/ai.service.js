@@ -133,19 +133,23 @@ CURRENT TASK ANGLE: ${angle}
 
 CONTENT RULES:
 - English output. Practical, authoritative tone.
-- Article length target: ${minWords}-${maxWords} words.
+- Article length target: ${minWords}-${maxWords} words. IMPORTANT: Aim for the HIGHER end of this range for better SEO and user engagement.
+- Write comprehensive, in-depth content with detailed explanations, examples, and actionable insights.
+- Include multiple sections with H2/H3 headings for easy scanning.
+- Add practical examples, use cases, and step-by-step guidance where relevant.
+- Include comparison tables, bullet points, and numbered lists to break up text.
 - Title MUST be under 65 characters and specific. Avoid generic repeated patterns and clickbait overpromises.
 - IMPORTANT: Today is in year ${currentYear}. Avoid stale year framing like 2025 in titles/excerpts unless explicitly historical.
 - metaDescription MUST be under 155 characters. Include the focus keyword naturally.
-- Include H2/H3 headings for easy scanning.
 - category must be one of: "AI Tools", "Policy", "How-To", "Comparison", "Productivity", "China vs US"
 - focusKeyword must be 2-4 words, practical and searchable.
 - Ground every major claim in the source material. Do not invent benchmarks, dates, pricing, availability, quotes, or product names.
 - Avoid boilerplate filler. Do not force generic "students / daily life / business productivity" sections unless the topic genuinely supports them.
 - Prefer topic-specific sections such as "What Changed", "Why It Matters", "Key Details", "Risks", "Comparison", or "What to Watch Next".
-- Add one short "Who Should Care" or "Who Should Pay Attention" section only when it naturally fits the topic.
-- Include a comparison table only when the topic naturally requires comparison (like in "comparison" or "china-us-rivalry" angle).
-- End with a short "Sources" section and include the provided source URL in markdown format.
+- Add detailed "Who Should Care" or "Who Should Pay Attention" section with specific use cases.
+- Include a comparison table when the topic naturally requires comparison (like in "comparison" or "china-us-rivalry" angle).
+- Add a "Frequently Asked Questions" section with 3-5 relevant questions and detailed answers.
+- End with a comprehensive "Sources" section and include the provided source URL in markdown format.
 - Prioritize fresh generative AI product updates, workflows, and real adoption guidance from recent developments.
 - No markdown code fences in output.
 
