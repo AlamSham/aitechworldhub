@@ -16,13 +16,17 @@ export async function GET() {
     return new Date(publishedDate) >= twoDaysAgo;
   });
 
+  // If no recent posts, return last 10 posts instead
+  const postsToInclude = newsPosts.length > 0 ? newsPosts : posts.slice(0, 10);
+
   const newsSitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
-${newsPosts.map((post) => {
+${postsToInclude.map((post) => {
     const publishedDate = post.publishedAt || post.createdAt;
     const pubDate = publishedDate ? new Date(publishedDate) : now;
     const formattedDate = pubDate.toISOString();
+    const keywords = (post.tags || []).slice(0, 10).join(', ');
     
     return `  <url>
     <loc>${SITE_URL}/posts/${post.slug}</loc>
@@ -32,7 +36,8 @@ ${newsPosts.map((post) => {
         <news:language>en</news:language>
       </news:publication>
       <news:publication_date>${formattedDate}</news:publication_date>
-      <news:title>${escapeXml(post.title)}</news:title>
+      <news:title>${escapeXml(post.title)}</news:title>${keywords ? `
+      <news:keywords>${escapeXml(keywords)}</news:keywords>` : ''}
     </news:news>
   </url>`;
   }).join('\n')}
