@@ -8,6 +8,9 @@ function wait(ms) {
 
 export async function manualSync(req, res, next) {
   try {
+    return res.status(403).json({
+      message: 'Scraping and auto blog generation is temporarily disabled.'
+    });
     const max = Math.max(1, Number(req.body?.maxItems || env.maxDraftsPerSync));
     const candidateCount = Math.max(max * Math.max(3, Number(env.chinaUsRatioEvery || 5)), max + 6);
     const imported = await syncSources(candidateCount);
